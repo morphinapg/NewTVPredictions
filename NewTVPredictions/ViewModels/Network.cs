@@ -12,7 +12,7 @@ namespace NewTVPredictions.ViewModels
     internal class Network : ViewModelBase
     {
         [DataMember]
-        string _name;
+        string _name ="";
         public string Name                                                  //The Name of the Network
         {
             get => _name;
@@ -24,22 +24,18 @@ namespace NewTVPredictions.ViewModels
         }
 
         [DataMember]
-        public ObservableCollection<string> Factors;                        //A factor is a true/false property of a show that can affect renewal
+        public ObservableCollection<string> Factors = new();                        //A factor is a true/false property of a show that can affect renewal
 
-        public Network (string name, ObservableCollection<string> factors)
+        public Network()
         {
-            _name = name;
 
-            Factors = new ObservableCollection<string>();
-            foreach (string factor in factors)
-                Factors.Add(factor);
         }
 
         public Network (Network n)
         {
             _name = n.Name;
 
-            Factors = new ObservableCollection<string> ();
+            Factors.Clear();
             foreach (string factor in n.Factors)
                 Factors.Add (factor);
         }

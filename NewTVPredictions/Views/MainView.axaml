@@ -12,5 +12,63 @@
     <vm:MainViewModel />
   </Design.DataContext>
 
-  <TextBlock Text="TV Predictions" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20" FontSize="24" FontWeight="Bold"/>
+  <Grid>    
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto" MinWidth="150"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <!--<ExperimentalAcrylicBorder IsHitTestVisible="False" Grid.ColumnSpan="2">
+      <ExperimentalAcrylicBorder.Material>
+        <ExperimentalAcrylicMaterial
+          BackgroundSource="Digger"
+          TintColor="Black"
+          TintOpacity="1"
+          MaterialOpacity="0.65"/>
+      </ExperimentalAcrylicBorder.Material>
+    </ExperimentalAcrylicBorder>-->
+    
+    <Grid Background="#40202020">
+      <Grid.Styles>
+        <Style Selector="Button">
+          <Setter Property="Margin" Value="15"/>
+          <Setter Property="Padding" Value="10"/>
+          <Setter Property="FontSize" Value="24"/>
+          <Setter Property="FontWeight" Value="Bold"/>
+          <Setter Property="HorizontalAlignment" Value="Stretch"/>
+          <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+      </Grid.Styles>
+      
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+
+      <Button Content="+" Grid.Row="1" Command="{Binding Add_Network}"/>
+    </Grid>
+
+    <Grid Grid.Column="1" Background="#40000000">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <Grid.Styles>
+        <Style Selector="UserControl">
+          <Setter Property="Transitions">
+            <Transitions>
+              <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+            </Transitions>
+          </Setter>
+        </Style>
+      </Grid.Styles>
+      
+      <TextBlock Text="TV Predictions" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="24" FontSize="24" FontWeight="Bold"/>
+
+      <UserControl Grid.Row="1" Content="{Binding ActivePage}"/>
+    </Grid>
+  </Grid>
+
+  
 </UserControl>

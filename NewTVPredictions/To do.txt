@@ -1,3 +1,4 @@
 ﻿Create a network and add factors
 	Create a button to add network
 	Create a View for adding factors
+	Add code in MainViewModel to handle the database
