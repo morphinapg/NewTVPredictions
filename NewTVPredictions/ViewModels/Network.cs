@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Avalonia.Controls;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -8,12 +9,12 @@ using System.Threading.Tasks;
 
 namespace NewTVPredictions.ViewModels
 {
-    [DataContract]
-    internal class Network : ViewModelBase
+    [DataContract (IsReference =true)]
+    public class Network : ViewModelBase                                      //A television network, including all of the shows for all years
     {
         [DataMember]
         string _name ="";
-        public string Name                                                  //The Name of the Network
+        public string Name                                                      //The Name of the Network
         {
             get => _name;
             set
@@ -24,7 +25,9 @@ namespace NewTVPredictions.ViewModels
         }
 
         [DataMember]
-        public ObservableCollection<string> Factors = new();                        //A factor is a true/false property of a show that can affect renewal
+        ObservableCollection<Factor> _factors = new();
+
+        public ObservableCollection<Factor> Factors => _factors;                //A factor is a true/false property of a show that can affect renewal
 
         public Network()
         {
@@ -36,18 +39,33 @@ namespace NewTVPredictions.ViewModels
             _name = n.Name;
 
             Factors.Clear();
-            foreach (string factor in n.Factors)
-                Factors.Add (factor);
+            foreach (Factor factor in n.Factors)
+                Factors.Add(factor);
         }
 
-        public void AddFactor(string factor)
+        string _currentFactor = "";
+        public string CurrentFactor                                             //On the Add Network page, this is the current string typed into the "Add a Factor" textbox
         {
-            Factors.Add(factor);
+            get => _currentFactor;
+            set
+            {
+                _currentFactor = value; 
+                OnPropertyChanged(nameof(CurrentFactor));
+            }
         }
 
-        public void RemoveFactor(string factor)
+        public CommandHandler Add_Factor => new CommandHandler(AddFactor);      //Add CurrentFactor to the Factors collection
+
+        void AddFactor()
         {
-            Factors.Remove(factor);
+            if (!string.IsNullOrEmpty(CurrentFactor))
+                Factors.Add(new Factor(CurrentFactor, Factors));
+
+            CurrentFactor = "";
+
+            FactorFocused?.Invoke(this, EventArgs.Empty);
         }
+
+        public event EventHandler? FactorFocused;
     }
 }

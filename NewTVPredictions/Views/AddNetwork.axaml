@@ -4,21 +4,103 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="NewTVPredictions.AddNetwork"
-             xmlns:vm="clr-namespace:NewTVPredictions.ViewModels">
+             xmlns:vm="clr-namespace:NewTVPredictions.ViewModels" x:DataType="vm:MainViewModel">
 
-  <UserControl.DataContext>
-    <vm:Network/>
-  </UserControl.DataContext>
+  <UserControl.Styles>
+    <Style Selector="TextBox">
+      <Setter Property="Margin" Value="5"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <Style Selector="TextBlock">
+      <Setter Property="Margin" Value="5"/>
+    </Style>
+
+    <Style Selector="Button">
+      <Setter Property="Margin" Value="5"/>
+    </Style>
+  </UserControl.Styles>
 
   <Grid>
+    
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*"/>
+      <ColumnDefinition Width="2*"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
     
-    <TextBlock Text="Add Network" HorizontalAlignment="Center" Margin="15" FontSize="24" FontWeight="Bold"/>
+    <Grid Grid.Column="1" x:DataType="vm:Network" DataContext="{Binding CurrentNetwork}" DataContextChanged="Grid_DataContextChanged" x:Name="NetworkGrid">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+
+      <TextBlock Text="Add Network" HorizontalAlignment="Center" Margin="15" FontSize="24" FontWeight="Bold"/>
+
+      <TextBlock Text="Network Name" Grid.Row="1"/>
+      <TextBox Grid.Row="2" Text="{Binding Name}" x:Name="NameBox"/>
+      
+      <TextBlock Text="Factors" Grid.Row="3"/>
+      <TextBlock Text="Factors are properties of every network show that can be set as true/false. Other descriptive properties like Season, # of episodes, episode length etc are included by default" Grid.Row="4" Margin="10" FontStyle="Italic" Opacity="0.75" TextWrapping="Wrap"/>
+      <Grid Grid.Row="5">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        
+        <TextBox Text="{Binding CurrentFactor}" x:Name="FactorBox"/>
+        <Button Content="Add" Grid.Column="1" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Command="{Binding Add_Factor}" IsDefault="True"/>
+      </Grid>
+
+      <ListBox ItemsSource="{Binding Factors}" Grid.Row="6" Background="Transparent">
+        <ListBox.ItemTemplate>
+          <DataTemplate DataType="vm:Factor">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              
+              <TextBlock Text="{Binding Text}" VerticalAlignment="Center"/>
+              <Button Content="X" Command="{Binding Remove_Click}" Grid.Column="1"/>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      
+    </Grid>
+
+    <Grid Grid.Row="1" Grid.Column="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <Grid.Styles>
+        <Style Selector="Button">
+          <Setter Property="HorizontalAlignment" Value="Stretch"/>
+          <Setter Property="HorizontalContentAlignment" Value="Center"/>
+          <Setter Property="FontSize" Value="18"/>
+          <Setter Property="Padding" Value="10"/>
+          <Setter Property="FontWeight" Value="Bold"/>
+          <Setter Property="Margin" Value="10"/>
+        </Style>
+      </Grid.Styles>
+
+      <Button Content="Clear" Command="{Binding Clear_Network}"/>
+      <Button Content="Add" Grid.Column="1" Command="{Binding Save_Network}"/>
+    </Grid>
   </Grid>
 </UserControl>
