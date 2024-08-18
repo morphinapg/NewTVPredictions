@@ -8,7 +8,7 @@
              x:DataType="vm:MainViewModel">
 
   <UserControl.DataContext>
-    <vm:MainViewModel />
+    <vm:MainViewModel/>
   </UserControl.DataContext>
 
   <Grid>    
@@ -17,7 +17,7 @@
       <ColumnDefinition Width="*"/>
     </Grid.ColumnDefinitions>
     
-    <Grid Background="#40202020">
+    <Grid Background="#40202020" RowDefinitions="Auto, *, Auto">
       <Grid.Styles>
         <Style Selector="Button">
           <Setter Property="Margin" Value="15"/>
@@ -27,14 +27,18 @@
           <Setter Property="HorizontalAlignment" Value="Stretch"/>
           <Setter Property="HorizontalContentAlignment" Value="Center"/>
         </Style>
+
+        <Style Selector="TextBlock">
+          <Setter Property="FontSize" Value="24"/>
+          <Setter Property="FontWeight" Value="Bold"/>
+          <Setter Property="HorizontalAlignment" Value="Center"/>
+          <Setter Property="Padding" Value="25"/>
+        </Style>
       </Grid.Styles>
       
-      <Grid.RowDefinitions>
-        <RowDefinition Height="*"/>
-        <RowDefinition Height="Auto"/>
-      </Grid.RowDefinitions>
+      <Button Content="&#xEA8A;" FontFamily="Segoe MDL2 Assets"/>
 
-      <ListBox ItemsSource="{Binding Networks}" Background="Transparent" >
+      <ListBox Grid.Row="1" ItemsSource="{Binding Networks}" Background="Transparent" SelectedItem="{Binding SelectedNetwork}" >
         <ListBox.Styles>
           <Style Selector="ListBoxItem">
             <Setter Property="Padding" Value="0"/>
@@ -43,25 +47,20 @@
         
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:Network">
-            <Button Content="{Binding Name}"/>
+            <TextBlock Text="{Binding Name}"/>
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
 
-      <Button Content="+" Grid.Row="1" Command="{Binding Add_Network}"/>
+      <Button Content="+" Grid.Row="2" Command="{Binding Add_Network}"/>
     </Grid>
 
-    <Grid Grid.Column="1" Background="#40000000">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="*"/>
-      </Grid.RowDefinitions>
-
+    <Grid Grid.Column="1" Background="#40000000" RowDefinitions="Auto,*">
       <Grid.Styles>
         <Style Selector="UserControl">
           <Setter Property="Transitions">
             <Transitions>
-              <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+              <DoubleTransition Property="Opacity" Duration="0:0:0.1"/>
             </Transitions>
           </Setter>
         </Style>

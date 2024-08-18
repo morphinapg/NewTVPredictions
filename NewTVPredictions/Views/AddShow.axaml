@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:NewTVPredictions.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="NewTVPredictions.AddShow"
+             x:DataType="vm:MainViewModel"
+             >
+  <UserControl DataContext="{Binding SelectedNetwork}" x:Name="NetworkPanel">
+    <Grid ColumnDefinitions="*,2*,*" x:Name="ShowGrid" x:DataType="vm:Show">
+      <Grid.DataContext>
+        <vm:Show/>
+      </Grid.DataContext>
+
+      <TextBlock Grid.Column="1" Text="Add a New Show" FontSize="36" HorizontalAlignment="Center"/>
+    </Grid>
+  </UserControl>
+
+</UserControl>

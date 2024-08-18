@@ -21,30 +21,9 @@
     </Style>
   </UserControl.Styles>
 
-  <Grid>
-    
-    <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="*"/>
-      <ColumnDefinition Width="2*"/>
-      <ColumnDefinition Width="*"/>
-    </Grid.ColumnDefinitions>
-
-    <Grid.RowDefinitions>
-      <RowDefinition Height="*"/>
-      <RowDefinition Height="Auto"/>
-    </Grid.RowDefinitions>
-    
-    <Grid Grid.Column="1" x:DataType="vm:Network" DataContext="{Binding CurrentNetwork}" DataContextChanged="Grid_DataContextChanged" x:Name="NetworkGrid">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="*"/>
-        <RowDefinition Height="Auto"/>
-      </Grid.RowDefinitions>
+  <Grid ColumnDefinitions="*,2*,*" RowDefinitions="*, Auto">    
+    <Grid Grid.Column="1" x:DataType="vm:Network" DataContext="{Binding CurrentNetwork}" DataContextChanged="Grid_DataContextChanged" x:Name="NetworkGrid"
+          RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, *, Auto">
 
       <TextBlock Text="Add Network" HorizontalAlignment="Center" Margin="15" FontSize="24" FontWeight="Bold"/>
 
@@ -53,12 +32,7 @@
       
       <TextBlock Text="Factors" Grid.Row="3"/>
       <TextBlock Text="Factors are properties of every network show that can be set as true/false. Other descriptive properties like Season, # of episodes, episode length etc are included by default" Grid.Row="4" Margin="10" FontStyle="Italic" Opacity="0.75" TextWrapping="Wrap"/>
-      <Grid Grid.Row="5">
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*"/>
-          <ColumnDefinition Width="Auto"/>
-        </Grid.ColumnDefinitions>
-        
+      <Grid Grid.Row="5" ColumnDefinitions="*, Auto">        
         <TextBox Text="{Binding CurrentFactor}" x:Name="FactorBox"/>
         <Button Content="Add" Grid.Column="1" VerticalAlignment="Stretch" VerticalContentAlignment="Center" Command="{Binding Add_Factor}" IsDefault="True"/>
       </Grid>
@@ -66,12 +40,7 @@
       <ListBox ItemsSource="{Binding Factors}" Grid.Row="6" Background="Transparent">
         <ListBox.ItemTemplate>
           <DataTemplate DataType="vm:Factor">
-            <Grid>
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-              </Grid.ColumnDefinitions>
-              
+            <Grid ColumnDefinitions="*, Auto">              
               <TextBlock Text="{Binding Text}" VerticalAlignment="Center"/>
               <Button Content="X" Command="{Binding Remove_Click}" Grid.Column="1"/>
             </Grid>
@@ -82,12 +51,7 @@
       
     </Grid>
 
-    <Grid Grid.Row="1" Grid.Column="1">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*"/>
-        <ColumnDefinition Width="*"/>
-      </Grid.ColumnDefinitions>
-
+    <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,*">
       <Grid.Styles>
         <Style Selector="Button">
           <Setter Property="HorizontalAlignment" Value="Stretch"/>

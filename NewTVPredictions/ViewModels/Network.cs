@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace NewTVPredictions.ViewModels
 {
     [DataContract (IsReference =true)]
-    public class Network : ViewModelBase                                      //A television network, including all of the shows for all years
+    public class Network : ViewModelBase                                        //A television network, including all of the shows for all years
     {
         [DataMember]
         string _name ="";
@@ -67,5 +67,10 @@ namespace NewTVPredictions.ViewModels
         }
 
         public event EventHandler? FactorFocused;
+
+        public override string ToString()                                       //Display the network name. Useful when debugging.
+        {
+            return Name;
+        }
     }
 }

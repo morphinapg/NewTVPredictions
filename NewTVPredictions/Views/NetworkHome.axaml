@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="NewTVPredictions.NetworkHome"
+             xmlns:vm="clr-namespace:NewTVPredictions.ViewModels" x:DataType="vm:MainViewModel">
+  <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,*">
+    
+    
+    <!--<TextBlock Text="{Binding Name}" HorizontalAlignment="Center" FontSize="24" FontWeight="Bold" DataContext="{Binding SelectedNetwork}"/>-->
+    <UserControl Content="{Binding SubPage}"/>
+
+    <ListBox Grid.Column="1" Grid.RowSpan="2" SelectedIndex="{Binding SelectedTabIndex}">
+      <ListBox.Items>
+        <ListBoxItem FontSize="18" FontWeight="Bold">Predictions</ListBoxItem>
+        <ListBoxItem>Add Show</ListBoxItem>
+        <ListBoxItem>Edit Ratings</ListBoxItem>
+        <ListBoxItem>Modify Show</ListBoxItem>
+        <ListBoxItem>Shows by Rating</ListBoxItem>
+        <ListBoxItem>Shows by Factor</ListBoxItem>
+        <ListBoxItem>Prediction Accuracy</ListBoxItem>
+        <ListBoxItem>Prediction Breakdown</ListBoxItem>
+        <ListBoxItem>Find Similar Shows</ListBoxItem>
+        <ListBoxItem>Modify Factors</ListBoxItem>
+      </ListBox.Items>
+    </ListBox>
+  </Grid>
+</UserControl>

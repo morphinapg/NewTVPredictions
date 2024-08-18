@@ -22,21 +22,33 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        ObservableCollection<Factor> Parent;
+        ObservableCollection<Factor> Parent;                                    //The original network factor list
 
-        public CommandHandler Remove_Click => new CommandHandler(Remove);
+               
 
-        public Factor(string text, ObservableCollection<Factor> parent)
+        public Factor(string text, ObservableCollection<Factor> parent)         //Create a new factor
         {
             Text = text;
             Parent = parent;
         }
 
+        public CommandHandler Remove_Click => new CommandHandler(Remove);       //if the user clicks the X on the Add Network page, remove factor from the list
         void Remove()
         {
             Parent.Remove(this);
         }
 
-        public static implicit operator string(Factor f) => f.Text;
+        public static implicit operator string(Factor f) => f.Text;             //Automatically treat factor as a string
+
+        bool _isEnabled;
+        public bool IsEnabled                                                   //Turn the factor on or off for a particular show
+        {
+            get => _isEnabled;
+            set
+            {
+                _isEnabled = value;
+                OnPropertyChanged(nameof(IsEnabled));
+            }
+        }
     }
 }
