@@ -3,18 +3,54 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:NewTVPredictions.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="768"
              x:Class="NewTVPredictions.AddShow"
-             x:DataType="vm:MainViewModel"
-             >
-  <UserControl DataContext="{Binding SelectedNetwork}" x:Name="NetworkPanel">
-    <Grid ColumnDefinitions="*,2*,*" x:Name="ShowGrid" x:DataType="vm:Show">
-      <Grid.DataContext>
-        <vm:Show/>
-      </Grid.DataContext>
+             x:DataType="vm:MainViewModel">
+  
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*"/>
+      <ColumnDefinition Width="4*" MinWidth="400"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+    
+    <Grid.Styles>
+      <Style Selector="TextBlock">
+        <Setter Property="Margin" Value="10"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+      </Style>
 
-      <TextBlock Grid.Column="1" Text="Add a New Show" FontSize="36" HorizontalAlignment="Center"/>
+      <Style Selector="NumericUpDown">
+        <Setter Property="Margin" Value="5"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      </Style>
+
+      <Style Selector="TextBox">
+        <Setter Property="Margin" Value="5"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+      </Style>
+    </Grid.Styles>
+    
+    <TextBlock Grid.Column="1" Text="Add a New Show" FontSize="36" HorizontalAlignment="Center"/>
+
+    <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" DataContext="{Binding SelectedNetwork.CurrentShow}" x:DataType="vm:Show">
+      
+      <TextBlock Text="Show Name:" FontSize="20" Grid.ColumnSpan="2"/>
+      <TextBox Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Name}"/>
+      
+      <TextBlock Text="Season #:" Grid.Row="2"/>
+      <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding Season}" Increment="1" Minimum="1"/>
+      
+      <TextBlock Text="Previously Aired Episodes:" Grid.Row="3"/>
+      <NumericUpDown Grid.Row="3" Grid.Column="2" Value="{Binding PreviousEpisodes}" IsEnabled="{Binding PreviousEnabled}" Increment="1" Minimum="0"/>
+      
+      <TextBlock Text="Number of Episodes:" Grid.Row="4"/>
+      <Slider Minimum="1" Maximum="26" Grid.Row="5" Value="{Binding Episodes}" Margin="5"/>
+      <TextBlock Grid.Row="5" Grid.Column="1" HorizontalAlignment="Center" Text="{Binding Episodes}"/>
     </Grid>
-  </UserControl>
+  </Grid>
 
 </UserControl>

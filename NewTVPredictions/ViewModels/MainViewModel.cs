@@ -171,6 +171,8 @@ public partial class MainViewModel : ViewModelBase
                 if (CurrentAddShow is null)
                     CurrentAddShow = new();
 
+                SelectedNetwork?.ResetShow();
+
                 if (SubPage?.Content is not AddShow)
                     await ReplacePage(SubPage!, CurrentAddShow);
                 break;

@@ -32,6 +32,13 @@ namespace NewTVPredictions.ViewModels
             Parent = parent;
         }
 
+        public Factor(Factor other)
+        {
+            Text = other.Text;
+            Parent = other.Parent;
+            IsEnabled = other.IsEnabled;
+        }
+
         public CommandHandler Remove_Click => new CommandHandler(Remove);       //if the user clicks the X on the Add Network page, remove factor from the list
         void Remove()
         {

@@ -11,12 +11,12 @@ public partial class AddShow : UserControl
     {
         InitializeComponent();
 
-        NetworkPanel.DataContextChanged += NetworkPanel_DataContextChanged;
+        //NetworkPanel.DataContextChanged += NetworkPanel_DataContextChanged;
     }
 
     private void NetworkPanel_DataContextChanged(object? sender, System.EventArgs e)            //As soon as the NetworkPanel UserControl gains DataContext (the currently selected network) set the new show's Parent to the network.
     {
-        if (ShowGrid.DataContext is Show s && NetworkPanel.DataContext is Network n)
-            s.Parent = n;
+        //if (ShowGrid.DataContext is Show s && NetworkPanel.DataContext is Network n)
+        //    s.Parent = n;
     }
 }
