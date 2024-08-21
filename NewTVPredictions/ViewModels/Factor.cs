@@ -36,7 +36,7 @@ namespace NewTVPredictions.ViewModels
         {
             Text = other.Text;
             Parent = other.Parent;
-            IsEnabled = other.IsEnabled;
+            IsTrue = other.IsTrue;
         }
 
         public CommandHandler Remove_Click => new CommandHandler(Remove);       //if the user clicks the X on the Add Network page, remove factor from the list
@@ -47,15 +47,20 @@ namespace NewTVPredictions.ViewModels
 
         public static implicit operator string(Factor f) => f.Text;             //Automatically treat factor as a string
 
-        bool _isEnabled;
-        public bool IsEnabled                                                   //Turn the factor on or off for a particular show
+        bool _isTrue;
+        public bool IsTrue                                                   //Turn the factor on or off for a particular show
         {
-            get => _isEnabled;
+            get => _isTrue;
             set
             {
-                _isEnabled = value;
-                OnPropertyChanged(nameof(IsEnabled));
+                _isTrue = value;
+                OnPropertyChanged(nameof(IsTrue));
             }
+        }
+
+        public override string ToString()
+        {
+            return Text + " = " + IsTrue;
         }
     }
 }

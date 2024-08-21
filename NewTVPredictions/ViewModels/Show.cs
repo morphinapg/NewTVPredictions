@@ -76,7 +76,7 @@ namespace NewTVPredictions.ViewModels
 
         [DataMember]
         ObservableCollection<Factor> _factors = new();
-        public ObservableCollection<Factor> Factors                             //The list of factors this show has. 
+        public ObservableCollection<Factor> Factors             //The list of factors this show has. 
         {                                                       //Will need to be updated if the Parent network factors change.
             get => _factors;
             set
@@ -98,6 +98,36 @@ namespace NewTVPredictions.ViewModels
                 OnPropertyChanged(nameof(HourLong));
             }
         }
-        public bool HourLong => !HalfHour;
+        public bool HourLong
+        {
+            get => !HalfHour;
+            set => HalfHour = !value;
+        }
+
+        [DataMember]
+        int? _year;
+        public int? Year                                        //The year this TV season aired
+        {
+            get => _year;
+            set
+            {
+                _year = value;
+                OnPropertyChanged(nameof(Year));
+            }
+        }
+
+        [DataMember]
+        List<decimal?>
+            Ratings = new(),
+            Viewers = new();
+
+        List<RatingsInfo> _ratingsContainer = new();
+        public  List<RatingsInfo> RatingsContainer => _ratingsContainer;
+
+        public Show()
+        {
+            RatingsContainer.Add(new RatingsInfo(Ratings, "Ratings"));
+            RatingsContainer.Add(new RatingsInfo(Viewers, "Viewers"));
+        }
     }
 }

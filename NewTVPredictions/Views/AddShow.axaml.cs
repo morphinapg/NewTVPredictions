@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using NewTVPredictions.ViewModels;
 
@@ -11,12 +12,23 @@ public partial class AddShow : UserControl
     {
         InitializeComponent();
 
-        //NetworkPanel.DataContextChanged += NetworkPanel_DataContextChanged;
+        ShowGrid.DataContextChanged += ShowGrid_DataContextChanged;
     }
 
-    private void NetworkPanel_DataContextChanged(object? sender, System.EventArgs e)            //As soon as the NetworkPanel UserControl gains DataContext (the currently selected network) set the new show's Parent to the network.
+    private void ShowGrid_DataContextChanged(object? sender, System.EventArgs e)
     {
-        //if (ShowGrid.DataContext is Show s && NetworkPanel.DataContext is Network n)
-        //    s.Parent = n;
+        NameBox.Focus();
+    }
+
+    protected override void OnLoaded(RoutedEventArgs e)
+    {
+        base.OnLoaded(e);
+        NameBox.Focus();
+    }
+
+    private void ListBox_SelectionChanged(object? sender, Avalonia.Controls.SelectionChangedEventArgs e)
+    {
+        if (sender is ListBox l)
+            l.SelectedItem = null;
     }
 }

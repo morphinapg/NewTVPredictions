@@ -24,4 +24,12 @@
   <ItemGroup>
     <UpToDateCheckInput Remove="Views\NetworkHome.axaml" />
   </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Views\Predictions.axaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Views\EditRatings.axaml" />
+  </ItemGroup>
 </Project>

@@ -110,7 +110,7 @@ public partial class MainViewModel : ViewModelBase
         set
         {
             _selectedNetwork = value;
-            OnPropertyChanged(nameof(SelectedNetwork));
+            OnPropertyChanged(nameof(SelectedNetwork));           
 
             SelectNetwork();
         }
@@ -121,13 +121,18 @@ public partial class MainViewModel : ViewModelBase
     async void SelectNetwork()                                                          //Switch the displayed page to the NetworkHome page for the currently selected network
     {
         if (SelectedNetwork is not null)
-        {            
+        {
+            SelectedNetwork.CurrentYear = CurrentYear;
+
             if (ActivePage?.Content is not NetworkHome)
             {
                 if (CurrentNetworkHome is null)
                     CurrentNetworkHome = new();
 
                 await ReplacePage(ActivePage!, CurrentNetworkHome);
+
+                if (SubPage.Content is null)
+                    SubPage.Content = new Predictions();
             }
 
             CurrentNetwork = SelectedNetwork;
@@ -163,19 +168,84 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    async void SwitchTab()
+    Predictions? CurrentPredictions;
+    EditRatings? CurrentEditRatings;
+
+    async void SwitchTab()                                                              //Switch to a tab on the NetworkHome page
     {
         switch (SelectedTabIndex)
         {
+            case PREDICTIONS:
+                if (CurrentPredictions is null)
+                    CurrentPredictions = new Predictions();
+
+                if (SubPage?.Content is not Predictions)
+                    await ReplacePage(SubPage!, CurrentPredictions);
+                break;
             case ADD_SHOW:
                 if (CurrentAddShow is null)
                     CurrentAddShow = new();
 
-                SelectedNetwork?.ResetShow();
-
                 if (SubPage?.Content is not AddShow)
+                {
+                    SelectedNetwork?.ResetShow();
                     await ReplacePage(SubPage!, CurrentAddShow);
+                }
+                    
+                break;
+            case EDIT_RATINGS:
+                if (CurrentEditRatings is null)
+                    CurrentEditRatings = new();
+
+                if (SubPage?.Content is not EditRatings)
+                    await ReplacePage(SubPage!, CurrentEditRatings);
+
                 break;
         }
     }
+
+    int CurrentTVSeason                                                                 //returns the current TV season starting year (September through August)
+    {
+        get
+        {
+            var now = DateTime.Now;
+            if (now.Month < 9)
+                return now.Year - 1;
+            else
+                return now.Year;
+        }
+    }
+
+    int? _currentYear;
+    public int? CurrentYear                                                             //The currently set TV season
+    {
+        get => _currentYear is null ? CurrentTVSeason : _currentYear;
+        set
+        {
+            _currentYear = value; 
+            OnPropertyChanged(nameof(CurrentYear));
+            
+            if (SelectedNetwork is not null)
+                SelectedNetwork.CurrentYear = value;
+        }
+    }
+
+    public DateTimeOffset? SelectedYear
+    {
+        get => CurrentYear.HasValue ? new DateTimeOffset(new DateTime(CurrentYear.Value, 1, 1), TimeSpan.Zero) : null;
+        set
+        {
+            var PreviousYear = _currentYear;
+
+            if (value is DateTimeOffset d)
+                CurrentYear = d.Year;
+
+            OnPropertyChanged(nameof(SelectedYear));
+
+            if (PreviousYear != CurrentYear)
+                DateChanged?.Invoke(this, new EventArgs());
+        }
+    }
+
+    public event EventHandler? DateChanged;
 }

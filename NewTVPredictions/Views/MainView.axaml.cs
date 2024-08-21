@@ -1,4 +1,8 @@
 ﻿using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.VisualTree;
+using NewTVPredictions.ViewModels;
+using System.Linq;
 
 namespace NewTVPredictions.Views;
 

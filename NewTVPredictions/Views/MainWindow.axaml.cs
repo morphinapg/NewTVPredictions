@@ -1,4 +1,6 @@
 ﻿using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 
 namespace NewTVPredictions.Views;
 
@@ -11,6 +13,9 @@ public partial class MainWindow : Window
 
     private void Window_PointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
     {
-        BeginMoveDrag(e);
+        var control = this.InputHitTest(e.GetPosition(this));
+
+        if (control is not null && control is not LightDismissOverlayLayer)
+            BeginMoveDrag(e);        
     }
 }

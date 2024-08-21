@@ -7,6 +7,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Specialized;
+using Avalonia.Threading;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -90,7 +91,7 @@ namespace NewTVPredictions.ViewModels
 
         private void Shows_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)                                    //This will need to run when a show is added to the Shows collection, in order to update the FilteredShows collection
         {
-            
+            UpdateFilter();   
         }
 
         Show _currentShow = new();
@@ -104,10 +105,12 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        public void ResetShow()                                                                                                         //After adding factors, make sure to reset them all to false
+        public CommandHandler ResetShow_Clicked => new CommandHandler(ResetShow);
+
+        public void ResetShow()                                                                                                     //After adding factors, make sure to reset them all to false
         {
             CurrentShow = new();
-            Parallel.ForEach(Factors, x => x.IsEnabled = false);
+            Parallel.ForEach(Factors, x => x.IsTrue = false);
             OnPropertyChanged(nameof(Factors));
         }
 
@@ -120,9 +123,30 @@ namespace NewTVPredictions.ViewModels
 
             CurrentShow.Factors = new ObservableCollection<Factor>(Factors.Select(x => new Factor(x)));
 
+            CurrentShow.Year = CurrentYear;
+
             Shows.Add(CurrentShow);
 
             ResetShow();
+        }
+
+        [DataMember]
+        int? _currentYear;
+        public int? CurrentYear                                                                                                     //Update the FilteredShows when the current year changes
+        {
+            get => _currentYear;
+            set
+            {
+                _currentYear = value;
+                UpdateFilter();
+            }
+        }
+
+        async void UpdateFilter()                                                                                                   //Update FilteredShows by the current year
+        {
+            IEnumerable<Show> tmpShows = CurrentYear is null ? Shows : Shows.AsParallel().Where(x => x.Year == CurrentYear);
+
+            await Dispatcher.UIThread.InvokeAsync( () => FilteredShows = new ObservableCollection<Show>(tmpShows) );
         }
     }
 }

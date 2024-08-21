@@ -56,17 +56,9 @@
     </Grid>
 
     <Grid Grid.Column="1" Background="#40000000" RowDefinitions="Auto,*">
-      <Grid.Styles>
-        <Style Selector="UserControl">
-          <Setter Property="Transitions">
-            <Transitions>
-              <DoubleTransition Property="Opacity" Duration="0:0:0.1"/>
-            </Transitions>
-          </Setter>
-        </Style>
-      </Grid.Styles>
+      <DatePicker HorizontalAlignment="Right" MonthVisible="False" DayVisible="False" Margin="35" SelectedDate="{Binding SelectedYear}" x:Name="YearPicker" VerticalAlignment="Center"/>
       
-      <TextBlock Text="TV Predictions" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="24" FontSize="24" FontWeight="Bold"/>
+      <TextBlock Text="TV Predictions" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="24" FontSize="24" FontWeight="Bold"/>
 
       <UserControl Grid.Row="1" Content="{Binding ActivePage}"/>
     </Grid>
