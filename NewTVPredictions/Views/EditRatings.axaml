@@ -6,7 +6,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="NewTVPredictions.EditRatings" x:DataType="vm:MainViewModel">
   <Grid DataContext="{Binding SelectedNetwork}">
-    <ListBox ItemsSource="{Binding FilteredShows}" Background="Transparent">
+    <ListBox ItemsSource="{Binding AlphabeticalShows}" Background="Transparent">
       <ListBox.Styles>
         <Style Selector="ListBoxItem">
           <Setter Property="Padding" Value="0" />
@@ -16,7 +16,7 @@
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="vm:Show">
           <Expander Header="{Binding Name}" HorizontalAlignment="Stretch" Padding="0">
-            <DataGrid ItemsSource="{Binding RatingsContainer}" FrozenColumnCount="1" Height="120">              
+            <DataGrid ItemsSource="{Binding RatingsContainer}" FrozenColumnCount="1" Height="120" CanUserReorderColumns="False" CanUserSortColumns="False" >              
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Episode #" Binding="{Binding Header}" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Episode 1" Binding="{Binding Episode1, UpdateSourceTrigger=LostFocus}"/>

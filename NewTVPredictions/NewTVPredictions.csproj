@@ -32,4 +32,8 @@
   <ItemGroup>
     <UpToDateCheckInput Remove="Views\EditRatings.axaml" />
   </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Views\ModifyShow.axaml" />
+  </ItemGroup>
 </Project>

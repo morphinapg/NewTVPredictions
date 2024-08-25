@@ -133,6 +133,8 @@ public partial class MainViewModel : ViewModelBase
 
                 if (SubPage.Content is null)
                     SubPage.Content = new Predictions();
+                else
+                    SwitchTab();
             }
 
             CurrentNetwork = SelectedNetwork;
@@ -170,9 +172,11 @@ public partial class MainViewModel : ViewModelBase
 
     Predictions? CurrentPredictions;
     EditRatings? CurrentEditRatings;
+    ModifyShow? CurrentModifyShow;
 
     async void SwitchTab()                                                              //Switch to a tab on the NetworkHome page
     {
+
         switch (SelectedTabIndex)
         {
             case PREDICTIONS:
@@ -186,12 +190,11 @@ public partial class MainViewModel : ViewModelBase
                 if (CurrentAddShow is null)
                     CurrentAddShow = new();
 
-                if (SubPage?.Content is not AddShow)
-                {
-                    SelectedNetwork?.ResetShow();
+                if (SubPage?.Content is not AddShow)       
                     await ReplacePage(SubPage!, CurrentAddShow);
-                }
-                    
+
+                SelectedNetwork?.ResetShow();
+
                 break;
             case EDIT_RATINGS:
                 if (CurrentEditRatings is null)
@@ -199,6 +202,16 @@ public partial class MainViewModel : ViewModelBase
 
                 if (SubPage?.Content is not EditRatings)
                     await ReplacePage(SubPage!, CurrentEditRatings);
+
+                break;
+            case MODIFY_SHOW:
+                if (CurrentModifyShow is null)
+                    CurrentModifyShow = new();
+
+                SelectedNetwork?.ResetShow();
+
+                if (SubPage?.Content is not ModifyShow)
+                    await ReplacePage(SubPage!, CurrentModifyShow);
 
                 break;
         }

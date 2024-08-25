@@ -8,6 +8,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Specialized;
 using Avalonia.Threading;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Enums;
+using ColorTextBlock.Avalonia;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -89,18 +92,30 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        ObservableCollection<Show> _alphabeticalShows = new();
+        public ObservableCollection<Show> AlphabeticalShows                                                                         //An alphabetical version of FilteredShows
+        {
+            get => _alphabeticalShows;
+            set
+            {
+                _alphabeticalShows = value;
+                OnPropertyChanged(nameof(AlphabeticalShows));
+            }
+        }
+
         private void Shows_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)                                    //This will need to run when a show is added to the Shows collection, in order to update the FilteredShows collection
         {
             UpdateFilter();   
         }
 
         Show _currentShow = new();
-        public Show CurrentShow                                                                                                     //The currently selected show. Used with AddShow and ModifyShow views
+        public Show CurrentShow                                                                                                    //The currently selected show. Used with AddShow and ModifyShow views
         {
             get => _currentShow;
             set
             {
                 _currentShow = value;
+                CurrentModifyShow = value;
                 OnPropertyChanged(nameof(CurrentShow));
             }
         }
@@ -112,25 +127,81 @@ namespace NewTVPredictions.ViewModels
             CurrentShow = new();
             Parallel.ForEach(Factors, x => x.IsTrue = false);
             OnPropertyChanged(nameof(Factors));
+
+            CurrentModifyShow = new();
         }
 
-        public CommandHandler AddShow_Clicked => new CommandHandler(Add_Show);                                                      
-
-        void Add_Show()                                                                                                             //Add current show to Shows collection
+        Show? _currentModifyShow = null;
+        public Show? CurrentModifyShow
         {
-            if (CurrentShow.Parent is null)
-                CurrentShow.Parent = this;
+            get => _currentModifyShow;
+            set
+            {
+                if (value is Show s)
+                    _currentModifyShow = string.IsNullOrEmpty(s.Name) ? null : new Show(s);
+                else
+                    _currentModifyShow = null;
+                
+                OnPropertyChanged(nameof(CurrentModifyShow));
+                OnPropertyChanged(nameof(ModifyEnabled));
+            }
+        }
 
-            CurrentShow.Factors = new ObservableCollection<Factor>(Factors.Select(x => new Factor(x)));
+        public bool ModifyEnabled => CurrentModifyShow is not null;                                                                 //disable the ModifyShow panel if CurrentModifyShow is null
 
-            CurrentShow.Year = CurrentYear;
 
-            Shows.Add(CurrentShow);
+        public CommandHandler Save_Modify => new CommandHandler(SaveModifyShow);                                                    //Save the current ModifyShow changes, replacing the original show in the list
+        void SaveModifyShow()
+        {
+            if (CurrentModifyShow is not null)
+            {
+                var OriginalShow = Shows.Where(x => x.Name == CurrentModifyShow.Name && x.Season == CurrentModifyShow.Season && x.Year == CurrentModifyShow.Year).FirstOrDefault();
+
+                if (OriginalShow is not null)
+                {
+                    Shows.Remove(OriginalShow);
+                    Shows.Add(CurrentModifyShow);
+                }
+            }
 
             ResetShow();
         }
 
-        [DataMember]
+        public CommandHandler AddShow_Clicked => new CommandHandler(Add_Show);                                                      
+
+        async void Add_Show()                                                                                                       //Add current show to Shows collection
+        {
+            if (CurrentShow is not null)
+            {
+                if (string.IsNullOrEmpty(CurrentShow.Name))
+                {
+                    await MessageBoxManager.GetMessageBoxStandard("Incomplete data", "Please give the show a name!", ButtonEnum.Ok).ShowAsync();
+                    return;
+                }
+                else if (Shows.Where(x => x.Name == CurrentShow.Name && x.Season == CurrentShow.Season && x.Year == CurrentYear).Any())
+                {
+                    await MessageBoxManager.GetMessageBoxStandard("Error", "This show already exists on the network!", ButtonEnum.Ok).ShowAsync();
+                    return;
+                }
+                else if (CurrentShow.Season > 1 && CurrentShow.PreviousEpisodes == 0)
+                {
+                    await MessageBoxManager.GetMessageBoxStandard("Error", "Please double check the previously aired episodes!", ButtonEnum.Ok).ShowAsync();
+                    return;
+                }
+
+                if (CurrentShow.Parent is null)
+                    CurrentShow.Parent = this;
+
+                CurrentShow.Factors = new ObservableCollection<Factor>(Factors.Select(x => new Factor(x)));
+
+                CurrentShow.Year = CurrentYear;
+
+                Shows.Add(CurrentShow);
+            }            
+
+            ResetShow();
+        }
+
         int? _currentYear;
         public int? CurrentYear                                                                                                     //Update the FilteredShows when the current year changes
         {
@@ -142,11 +213,16 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        async void UpdateFilter()                                                                                                   //Update FilteredShows by the current year
+        async void UpdateFilter()                                                                                                   //Update FilteredShows and AlphabeticalShows by the current year
         {
-            IEnumerable<Show> tmpShows = CurrentYear is null ? Shows : Shows.AsParallel().Where(x => x.Year == CurrentYear);
+            var tmpShows = CurrentYear is null ? Shows.AsParallel() : Shows.AsParallel().Where(x => x.Year == CurrentYear);
+            var alphabetical = tmpShows.OrderBy(x => x.Name);
 
-            await Dispatcher.UIThread.InvokeAsync( () => FilteredShows = new ObservableCollection<Show>(tmpShows) );
+            await Dispatcher.UIThread.InvokeAsync( () =>
+            {
+                FilteredShows = new ObservableCollection<Show>(tmpShows);
+                AlphabeticalShows = new ObservableCollection<Show>(alphabetical);
+            });
         }
     }
 }

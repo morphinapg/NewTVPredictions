@@ -19,6 +19,11 @@
     <Style Selector="Button">
       <Setter Property="Margin" Value="5"/>
     </Style>
+
+    <Style Selector="ListBoxItem">
+      <Setter Property="Margin" Value="0"/>
+      <Setter Property="Padding" Value="0"/>
+    </Style>
   </UserControl.Styles>
 
   <Grid ColumnDefinitions="*,2*,*" RowDefinitions="*, Auto">    

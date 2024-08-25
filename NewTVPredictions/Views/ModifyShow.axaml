@@ -1,0 +1,99 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:NewTVPredictions.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="768"
+             x:Class="NewTVPredictions.ModifyShow" x:DataType="vm:MainViewModel">
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" DataContext="{Binding SelectedNetwork}" x:DataType="vm:Network">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*"/>
+      <ColumnDefinition Width="4*" MinWidth="400"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <Grid.Styles>
+      <Style Selector="TextBlock">
+        <Setter Property="Margin" Value="10"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+      </Style>
+
+      <Style Selector="NumericUpDown">
+        <Setter Property="Margin" Value="5"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      </Style>
+
+      <Style Selector="TextBox">
+        <Setter Property="Margin" Value="5"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+      </Style>
+
+      <Style Selector="Button">
+        <Setter Property="Margin" Value="10"/>
+        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="Padding" Value="20,10"/>
+      </Style>
+
+      <Style Selector="ListBoxItem">
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+      </Style>
+
+      <Style Selector="CheckBox">
+        <Setter Property="Margin" Value="5"/>
+      </Style>
+    </Grid.Styles>
+
+    <TextBlock Grid.Column="1" Text="Modify Show" FontSize="36" HorizontalAlignment="Center"/>
+    
+    <TextBlock Text="Select a Show" Grid.Row="1" Grid.Column="1"/>
+    <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding AlphabeticalShows}" HorizontalAlignment="Stretch" SelectedItem="{Binding CurrentShow}"/>
+
+    <Grid Grid.Row="3" Grid.Column="1" IsVisible="{Binding ModifyEnabled}">
+      <Grid  RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" ColumnDefinitions="*,Auto" DataContext="{Binding CurrentModifyShow}" x:DataType="vm:Show" x:Name="ShowGrid" >
+
+        <TextBlock Text="Show Name:" FontSize="20" Grid.ColumnSpan="2"/>
+        <TextBox Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Name}" x:Name="NameBox"/>
+
+        <TextBlock Text="Season #:" Grid.Row="2"/>
+        <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding Season}" Increment="1" Minimum="1"/>
+
+        <TextBlock Text="Previously Aired Episodes:" Grid.Row="3"/>
+        <NumericUpDown Grid.Row="3" Grid.Column="2" Value="{Binding PreviousEpisodes}" IsEnabled="{Binding PreviousEnabled}" Increment="1" Minimum="0"/>
+
+        <TextBlock Text="Number of Episodes:" Grid.Row="4"/>
+        <Slider Minimum="1" Maximum="26" Grid.Row="5" Value="{Binding Episodes}" Margin="5"/>
+        <TextBlock Grid.Row="5" Grid.Column="1" HorizontalAlignment="Center" Text="{Binding Episodes}"/>
+
+        <ListBox ItemsSource="{Binding Factors}" Background="Transparent" Grid.Row="6" Grid.ColumnSpan="2" SelectionChanged="ListBox_SelectionChanged">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="vm:Factor">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{Binding Text}"/>
+                <CheckBox Grid.Column="1" IsChecked="{Binding IsTrue}"/>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <ToggleSwitch Grid.Row="7" Grid.ColumnSpan="2" OffContent="30 Minutes" OnContent="60 Minutes" HorizontalAlignment="Center" IsChecked="{Binding HourLong}"/>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="8" Grid.ColumnSpan="2" HorizontalAlignment="Center">
+          <TextBlock Text="Renewal Status:"/>
+          <CheckBox Content="Canceled" IsChecked="{Binding Canceled}"/>
+          <CheckBox Content="Renewed" IsChecked="{Binding Renewed}"/>          
+        </StackPanel>
+        
+        <TextBox Grid.Row="9" Grid.ColumnSpan="2" Text="{Binding RenewalStatus}"/>
+      </Grid>
+    </Grid>         
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="4" Grid.Column="1">
+      <Button Content="Cancel" Command="{Binding ResetShow_Clicked}"/>
+      <Button Content="Save" Command="{Binding Save_Modify}"/>
+    </StackPanel>
+  </Grid>
+</UserControl>

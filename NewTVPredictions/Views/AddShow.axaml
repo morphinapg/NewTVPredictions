@@ -38,6 +38,11 @@
         <Setter Property="FontSize" Value="24"/>
         <Setter Property="Padding" Value="20,10"/>
       </Style>
+
+      <Style Selector="ListBoxItem">
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+      </Style>
     </Grid.Styles>
 
     <TextBlock Grid.Column="1" Text="Add a New Show" FontSize="36" HorizontalAlignment="Center"/>

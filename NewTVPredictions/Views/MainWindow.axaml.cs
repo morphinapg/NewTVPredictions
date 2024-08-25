@@ -15,7 +15,7 @@ public partial class MainWindow : Window
     {
         var control = this.InputHitTest(e.GetPosition(this));
 
-        if (control is not null && control is not LightDismissOverlayLayer)
+        if (control is not null && control is not LightDismissOverlayLayer && control is not Border)
             BeginMoveDrag(e);        
     }
 }

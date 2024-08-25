@@ -42,12 +42,14 @@ namespace NewTVPredictions.ViewModels
             else
                 Ratings[i] = value;
 
-            if (i > Ratings.Count - 1)
+            if (i > Ratings.Count - 1 || value is null)
             {
                 if (Ratings.Contains(null))
                     Ratings = Ratings.Where(x => x is not null).ToList();
 
-                for (int j = 0; j < 26; j++)
+                var max = Math.Min(Ratings.Count+1, 26);
+
+                for (int j = 0; j < max; j++)
                     OnPropertyChanged("Episode" + (j + 1));
             }
             else
