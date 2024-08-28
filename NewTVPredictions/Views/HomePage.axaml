@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:NewTVPredictions.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="NewTVPredictions.HomePage"
+             x:DataType="vm:MainViewModel">
+  <Grid>
+    <Button HorizontalAlignment="Center" VerticalAlignment="Center" Content="Import Old Database" Command="{Binding Import_Database}" IsVisible="{Binding ImportVisible}"/>
+  </Grid>
+</UserControl>

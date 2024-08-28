@@ -216,7 +216,7 @@ namespace NewTVPredictions.ViewModels
         async void UpdateFilter()                                                                                                   //Update FilteredShows and AlphabeticalShows by the current year
         {
             var tmpShows = CurrentYear is null ? Shows.AsParallel() : Shows.AsParallel().Where(x => x.Year == CurrentYear);
-            var alphabetical = tmpShows.OrderBy(x => x.Name);
+            var alphabetical = tmpShows.OrderBy(x => x.Name).ThenBy(x => x.Season);
 
             await Dispatcher.UIThread.InvokeAsync( () =>
             {
@@ -224,5 +224,72 @@ namespace NewTVPredictions.ViewModels
                 AlphabeticalShows = new ObservableCollection<Show>(alphabetical);
             });
         }
+
+        Queue<Factor> SubscribedFactors = new();                                                                                    
+
+        public void SubscribeToFactors()                                                                                            //When searching for shows by factor, factor toggle events must be subscribed. This keeps track of them.
+        {
+            while (SubscribedFactors.Any())
+            {
+                var factor = SubscribedFactors.Dequeue();
+                factor.Toggled -= Factor_Toggled;
+            }
+
+            foreach (var factor in Factors)
+            {
+                SubscribedFactors.Enqueue(factor);
+                factor.Toggled += Factor_Toggled;
+            }
+
+            ShowsFilteredByFactor.Clear();
+        }
+
+        private void Factor_Toggled(object? sender, EventArgs e)                                                                    //When factors are toggled, update ShowsFilteredByFactor
+        {
+            var SelectedFactors = Factors.Where(x => x.IsTrue);
+
+            if (SelectedFactors.Any())
+            {
+                var shows = ShowAllYears ?
+                Shows.Where(x => SelectedFactors.All(y => x.Factors.Contains(y))) :
+                Shows.Where(x => x.Year == CurrentYear && SelectedFactors.All(y => x.Factors.Contains(y)));
+
+                shows = shows.OrderBy(x => x.Name).ThenBy(x => x.Season);
+
+                var ShowNames = ShowAllYears ?
+                    shows.Select(x => x.Name + " (Season " + x.Season + ")") :
+                    shows.Select(x => x.ToString());
+
+                ShowsFilteredByFactor = new ObservableCollection<string>(ShowNames);
+            }
+            else if (ShowsFilteredByFactor.Any())
+                ShowsFilteredByFactor?.Clear();            
+        }
+
+        ObservableCollection<string> _showsFilteredByFactor = new();
+        public ObservableCollection<string> ShowsFilteredByFactor                                                                   //List of shows to display when searching for shows by factor
+        {
+            get => _showsFilteredByFactor;
+            set
+            {
+                _showsFilteredByFactor = value;
+                OnPropertyChanged(nameof(ShowsFilteredByFactor));
+            }
+        }
+
+        bool _showAllYears;
+        public bool ShowAllYears                                                                                                    //Allows the user to display all years when searching for shows by factor
+        {
+            get => _showAllYears;
+            set
+            {
+                _showAllYears = value;
+                OnPropertyChanged(nameof(ShowAllYears));
+
+                Factor_Toggled(this, new EventArgs());
+            }
+        }
+
+
     }
 }

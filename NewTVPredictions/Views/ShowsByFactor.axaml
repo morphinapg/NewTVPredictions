@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="NewTVPredictions.ShowsByFactor"
+             xmlns:vm="clr-namespace:NewTVPredictions.ViewModels" x:DataType="vm:MainViewModel">
+  <Grid DataContext="{Binding SelectedNetwork}" x:DataType="vm:Network" RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,*">
+    <Grid.Styles>
+      <Style Selector="TextBlock">
+        <Setter Property="Margin" Value="10"/>
+      </Style>
+
+      <Style Selector="ListBoxItem">
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+      </Style>
+    </Grid.Styles>
+    
+    <TextBlock Text="Search for a Show by Factor(s)" FontSize="24" HorizontalAlignment="Center" Grid.ColumnSpan="2"/>
+    
+    
+    
+    <TextBlock Text="Factors:" Grid.Row="1"/>
+    <ScrollViewer Grid.Row="2" >
+      <ItemsControl Background="Transparent" ItemsSource="{Binding Factors}">
+        <ItemsControl.Styles>
+          <Style Selector="ListBoxItem">
+            
+          </Style>
+        </ItemsControl.Styles>
+        
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="vm:Factor">
+            <ListBoxItem>
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{Binding Text}"/>
+                <CheckBox IsChecked="{Binding IsTrue}" HorizontalAlignment="Stretch" Grid.ColumnSpan="2" FlowDirection="RightToLeft"/>
+              </Grid>
+            </ListBoxItem>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>    
+
+    <TextBlock Text="Shows:" Grid.Row="1" Grid.Column="1"/>
+    <ListBox Grid.Row="2" Grid.Column="1" Background="Transparent" ItemsSource="{Binding ShowsFilteredByFactor}"/>
+
+    <CheckBox Content="Show All Years" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Center" Margin="10" IsChecked="{Binding ShowAllYears}"/>
+  </Grid>
+</UserControl>

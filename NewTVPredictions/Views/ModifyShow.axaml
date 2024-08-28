@@ -52,7 +52,7 @@
     <TextBlock Text="Select a Show" Grid.Row="1" Grid.Column="1"/>
     <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding AlphabeticalShows}" HorizontalAlignment="Stretch" SelectedItem="{Binding CurrentShow}"/>
 
-    <Grid Grid.Row="3" Grid.Column="1" IsVisible="{Binding ModifyEnabled}">
+    <ScrollViewer Grid.Row="3" Grid.Column="1" IsVisible="{Binding ModifyEnabled}">
       <Grid  RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" ColumnDefinitions="*,Auto" DataContext="{Binding CurrentModifyShow}" x:DataType="vm:Show" x:Name="ShowGrid" >
 
         <TextBlock Text="Show Name:" FontSize="20" Grid.ColumnSpan="2"/>
@@ -68,28 +68,30 @@
         <Slider Minimum="1" Maximum="26" Grid.Row="5" Value="{Binding Episodes}" Margin="5"/>
         <TextBlock Grid.Row="5" Grid.Column="1" HorizontalAlignment="Center" Text="{Binding Episodes}"/>
 
-        <ListBox ItemsSource="{Binding Factors}" Background="Transparent" Grid.Row="6" Grid.ColumnSpan="2" SelectionChanged="ListBox_SelectionChanged">
-          <ListBox.ItemTemplate>
+        <ItemsControl ItemsSource="{Binding Factors}" Background="Transparent" Grid.Row="6" Grid.ColumnSpan="2">
+          <ItemsControl.ItemTemplate>
             <DataTemplate DataType="vm:Factor">
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{Binding Text}"/>
-                <CheckBox Grid.Column="1" IsChecked="{Binding IsTrue}"/>
-              </Grid>
+              <ListBoxItem>
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{Binding Text}"/>
+                  <CheckBox Grid.ColumnSpan="2" HorizontalAlignment="Stretch" FlowDirection="RightToLeft"  IsChecked="{Binding IsTrue}"/>
+                </Grid>
+              </ListBoxItem>
             </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <ToggleSwitch Grid.Row="7" Grid.ColumnSpan="2" OffContent="30 Minutes" OnContent="60 Minutes" HorizontalAlignment="Center" IsChecked="{Binding HourLong}"/>
 
         <StackPanel Orientation="Horizontal" Grid.Row="8" Grid.ColumnSpan="2" HorizontalAlignment="Center">
           <TextBlock Text="Renewal Status:"/>
           <CheckBox Content="Canceled" IsChecked="{Binding Canceled}"/>
-          <CheckBox Content="Renewed" IsChecked="{Binding Renewed}"/>          
+          <CheckBox Content="Renewed" IsChecked="{Binding Renewed}"/>
         </StackPanel>
-        
+
         <TextBox Grid.Row="9" Grid.ColumnSpan="2" Text="{Binding RenewalStatus}"/>
       </Grid>
-    </Grid>         
+    </ScrollViewer>          
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="4" Grid.Column="1">
       <Button Content="Cancel" Command="{Binding ResetShow_Clicked}"/>

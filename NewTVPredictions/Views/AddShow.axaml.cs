@@ -25,10 +25,4 @@ public partial class AddShow : UserControl
         base.OnLoaded(e);
         NameBox.Focus();
     }
-
-    private void ListBox_SelectionChanged(object? sender, Avalonia.Controls.SelectionChangedEventArgs e)
-    {
-        if (sender is ListBox l)
-            l.SelectedItem = null;
-    }
 }

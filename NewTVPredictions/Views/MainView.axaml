@@ -36,7 +36,7 @@
         </Style>
       </Grid.Styles>
       
-      <Button Content="&#xEA8A;" FontFamily="Segoe MDL2 Assets"/>
+      <Button Content="&#xEA8A;" FontFamily="Segoe MDL2 Assets" Command="{Binding Home_Click}"/>
 
       <ListBox Grid.Row="1" ItemsSource="{Binding Networks}" Background="Transparent" SelectedItem="{Binding SelectedNetwork}" >
         <ListBox.Styles>

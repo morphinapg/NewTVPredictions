@@ -4,9 +4,9 @@ using Avalonia.Markup.Xaml;
 
 namespace NewTVPredictions;
 
-public partial class ModifyShow : UserControl
+public partial class HomePage : UserControl
 {
-    public ModifyShow()
+    public HomePage()
     {
         InitializeComponent();
     }

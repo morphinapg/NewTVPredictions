@@ -5,10 +5,10 @@
              xmlns:vm="using:NewTVPredictions.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="NewTVPredictions.Predictions" x:DataType="vm:MainViewModel">
-  <Grid DataContext="{Binding SelectedNetwork}">
-    <DataGrid HorizontalAlignment="Center" ItemsSource="{Binding FilteredShows}" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="DataGrid_SelectionChanged">
+  <Grid DataContext="{Binding SelectedNetwork}" x:DataType="vm:Network">
+    <DataGrid HorizontalAlignment="Center" ItemsSource="{Binding AlphabeticalShows}" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="DataGrid_SelectionChanged">
       <DataGrid.Columns>
-        <DataGridTextColumn Header="Show Name" Binding="{Binding Name}"/>
+        <DataGridTextColumn Header="Show Name" Binding="{Binding}"/>
       </DataGrid.Columns>
     </DataGrid>
   </Grid>

@@ -36,4 +36,12 @@
   <ItemGroup>
     <UpToDateCheckInput Remove="Views\ModifyShow.axaml" />
   </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Views\HomePage.axaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Views\ShowsByFactor.axaml" />
+  </ItemGroup>
 </Project>

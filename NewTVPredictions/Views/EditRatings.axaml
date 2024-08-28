@@ -15,7 +15,7 @@
       
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="vm:Show">
-          <Expander Header="{Binding Name}" HorizontalAlignment="Stretch" Padding="0">
+          <Expander Header="{Binding}" HorizontalAlignment="Stretch" Padding="0">
             <DataGrid ItemsSource="{Binding RatingsContainer}" FrozenColumnCount="1" Height="120" CanUserReorderColumns="False" CanUserSortColumns="False" >              
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Episode #" Binding="{Binding Header}" IsReadOnly="True"/>

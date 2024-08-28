@@ -48,19 +48,47 @@ namespace NewTVPredictions.ViewModels
         public static implicit operator string(Factor f) => f.Text;             //Automatically treat factor as a string
 
         bool _isTrue;
-        public bool IsTrue                                                   //Turn the factor on or off for a particular show
+        public bool IsTrue                                                      //Turn the factor on or off for a particular show
         {
             get => _isTrue;
             set
             {
                 _isTrue = value;
                 OnPropertyChanged(nameof(IsTrue));
+
+                Toggled?.Invoke(this, EventArgs.Empty);
             }
         }
 
-        public override string ToString()
+        public override string ToString()                                       //Display the Factor State in ToString
         {
             return Text + " = " + IsTrue;
         }
+
+        public override bool Equals(object? obj)                                //Factor Equivalence should be determined based on Name of factor, and Value
+        {
+            if (obj is null) return false;
+            if (obj is Factor f)
+            {
+                if (f.Text == Text && f.IsTrue ==  IsTrue)
+                    return true;
+                else
+                    return false;
+            }
+            else
+                return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return new {Text, IsTrue}.GetHashCode();
+        }
+
+        public event EventHandler? Toggled;
+        public void Toggle()                                                    //Toggle the IsTrue property
+        {
+            IsTrue = !IsTrue;
+        }
+
     }
 }

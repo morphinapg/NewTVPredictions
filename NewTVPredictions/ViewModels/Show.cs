@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 using System.Runtime.Serialization;
 using System.Collections.ObjectModel;
 using System.Reflection.Metadata.Ecma335;
+using System.Collections;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Dto;
+using MsBox.Avalonia.Enums;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -118,7 +122,7 @@ namespace NewTVPredictions.ViewModels
         }
 
         [DataMember]
-        List<decimal?>
+        public List<decimal?>
             Ratings = new(),
             Viewers = new();
 
@@ -133,6 +137,9 @@ namespace NewTVPredictions.ViewModels
 
         public override string ToString()                                   //ToString should display the Show name
         {
+            if (Parent is not null && Parent.Shows.Where(x => x.Name == Name && x.Year == Year).Count() > 1)
+                return Name + " (Season " + Season + ")";
+
             return Name;
         }
 
@@ -154,6 +161,11 @@ namespace NewTVPredictions.ViewModels
 
             RatingsContainer.Add(new RatingsInfo(Ratings, "Ratings"));
             RatingsContainer.Add(new RatingsInfo(Viewers, "Viewers"));
+
+            if (this != other)
+            {
+                MessageBoxManager.GetMessageBoxStandard("Error", "Please update the copy constructor to support Property '" + MissingProperty + "'", ButtonEnum.Ok).ShowAsync();
+            }
         }
 
         bool _canceled;
@@ -188,12 +200,15 @@ namespace NewTVPredictions.ViewModels
             get => _renewalStatus is null ? DefaultString : _renewalStatus;
             set
             {
-                _renewalStatus = value;
+                if (value == DefaultString)
+                    _renewalStatus = null;
+                else
+                    _renewalStatus = value;
                 OnPropertyChanged(nameof(RenewalStatus));
             }
         }
 
-        string DefaultString
+        string DefaultString                                                //The default RenewalStatus if one has not been entered yet.
         {
             get
             {
@@ -206,6 +221,73 @@ namespace NewTVPredictions.ViewModels
                 else
                     return "";
             }
+        }
+
+        string? MissingProperty;
+
+        public static bool operator ==(Show x, Show y)                      //Equivalency check, mainly used to verify the copy constructor handles every property
+        {
+            if (x is null && y is null) return true;
+            if (x is null || y is null) return false;
+            if (ReferenceEquals(x, y)) return true;
+
+            var properties = x.GetType().GetProperties();
+            foreach ( var property in properties )
+            {
+                if (property.Name != "RatingsContainer" && property.Name !="MissingProperty")
+                {
+                    var value1 = property.GetValue(x);
+                    var value2 = property.GetValue(y);
+
+                    if (property.GetType().IsValueType)
+                    {
+                        if (value1 != value2)
+                        {
+                            x.MissingProperty = property.Name;
+                            return false;
+                        }
+                            
+                    }
+                    else
+                    {
+                        if (!ReferenceEquals(value1, value2))
+                        {
+
+                            if (property.PropertyType is IEnumerable || (property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(ObservableCollection<>)))
+                            {
+                                var enumerable1 = value1 as IEnumerable;
+                                var enumerable2 = value2 as IEnumerable;
+
+                                if (enumerable1 is not null && enumerable2 is not null && !enumerable1.Cast<object>().SequenceEqual(enumerable2.Cast<object>()))
+                                {
+                                    x.MissingProperty = property.Name;
+                                    return false; 
+                                }
+                            }
+                            else if (value1 is not null && value2 is not null && !value1.Equals(value2))
+                            {
+                                MessageBoxManager.GetMessageBoxStandard("Error", "Property '" + property.Name + "' requires custom code to check equivalency.", ButtonEnum.Ok).ShowAsync();
+
+                                return false;
+                            }
+                        }
+                    }
+                }                
+            }
+
+            return true;
+        }
+
+        public static bool operator !=(Show x, Show y) => !(x == y);
+
+        public override bool Equals(object? obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return new { Name, Season, Year}.GetHashCode();
         }
     }
 }

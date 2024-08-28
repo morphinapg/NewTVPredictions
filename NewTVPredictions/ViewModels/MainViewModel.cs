@@ -6,10 +6,12 @@ using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel.Design;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using Avalonia.Platform.Storage;
+using System.IO;
+using System.Collections.Generic;
 
 namespace NewTVPredictions.ViewModels;
 
@@ -173,6 +175,7 @@ public partial class MainViewModel : ViewModelBase
     Predictions? CurrentPredictions;
     EditRatings? CurrentEditRatings;
     ModifyShow? CurrentModifyShow;
+    ShowsByFactor? CurrentShowsByFactor;
 
     async void SwitchTab()                                                              //Switch to a tab on the NetworkHome page
     {
@@ -214,6 +217,19 @@ public partial class MainViewModel : ViewModelBase
                     await ReplacePage(SubPage!, CurrentModifyShow);
 
                 break;
+            case SHOWS_BY_FACTOR:
+                if (CurrentShowsByFactor is null)
+                    CurrentShowsByFactor = new();                
+
+                if (SubPage?.Content is not ShowsByFactor)
+                {
+                    SelectedNetwork?.SubscribeToFactors();
+                    await ReplacePage(SubPage!, CurrentShowsByFactor);
+                }                    
+
+                SelectedNetwork?.ResetShow();
+
+                break;
         }
     }
 
@@ -243,7 +259,7 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    public DateTimeOffset? SelectedYear
+    public DateTimeOffset? SelectedYear                                                 //Get and set the current TV Season from DatePicker
     {
         get => CurrentYear.HasValue ? new DateTimeOffset(new DateTime(CurrentYear.Value, 1, 1), TimeSpan.Zero) : null;
         set
@@ -254,11 +270,142 @@ public partial class MainViewModel : ViewModelBase
                 CurrentYear = d.Year;
 
             OnPropertyChanged(nameof(SelectedYear));
-
-            if (PreviousYear != CurrentYear)
-                DateChanged?.Invoke(this, new EventArgs());
         }
     }
 
-    public event EventHandler? DateChanged;
+    bool _importVisible = true;
+    public bool ImportVisible
+    {
+        get => _importVisible;
+        set
+        {
+            _importVisible = value; 
+            OnPropertyChanged(nameof(ImportVisible));
+        }
+    }
+
+    public CommandHandler Import_Database => new CommandHandler(ImportData);
+    async void ImportData()                                                                   //Import Network and Show data from old Database (this code will be removed in the future)
+    {
+        var TopLevel = CurrentApp.TopLevel;
+
+        if (TopLevel is not null)
+        {
+            var xmlFileType = new FilePickerFileType("XML Files");
+            xmlFileType.Patterns = new[] { "*.xml" };
+
+            var Files = await TopLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Open Database",
+                AllowMultiple = false,
+                SuggestedStartLocation = await TopLevel.StorageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Desktop),
+                FileTypeFilter = new List<FilePickerFileType> { xmlFileType}
+            });
+
+            if (Files.Any())
+            {
+                var File = Files.First().Path;
+
+                var OldData = await ReadObjectAsync<List<TV_Ratings_Predictions.Network>>(File.AbsolutePath);
+
+                if (OldData is not null)
+                {
+                    foreach (var n in OldData)
+                    {
+                        var NewNetwork = new Network();
+                        NewNetwork.Name = n.name;
+                        
+                        foreach(var f in n.factors)
+                        {
+                            if (f is not null)
+                            {
+                                NewNetwork.Factors.Add(new Factor(f, NewNetwork.Factors));
+                            }
+                        }
+
+                        foreach(var s in n.shows)
+                        {
+                            if (s is not null)
+                            {
+                                var NewShow = new Show();
+                                NewShow.Parent = NewNetwork;
+                                NewShow.Name = s.Name;
+                                NewShow.Season = s.Season;
+                                NewShow.PreviousEpisodes = s.PreviousEpisodes;
+                                NewShow.Episodes = s.Episodes;
+
+                                for (int i = 0; i < s.factorValues.Count; i++)
+                                {
+                                    var Factor = new Factor(NewNetwork.Factors[i]);
+                                    Factor.IsTrue = s.factorValues[i];
+
+                                    NewShow.Factors.Add(Factor);
+                                }
+
+                                NewShow.HalfHour = s.Halfhour;
+                                NewShow.Year = s.year;
+                                foreach (var d in s.ratings)
+                                    NewShow.Ratings.Add((decimal)d);
+                                foreach (var d in s.viewers)
+                                    NewShow.Viewers.Add((decimal)d);
+
+                                NewShow.Canceled = s.Canceled;
+                                NewShow.Renewed = s.Renewed;
+                                NewShow.RenewalStatus = s.RenewalStatus;
+
+                                NewNetwork.Shows.Add(NewShow);
+                            }
+                        }
+
+                        Networks.Add(NewNetwork);
+                    }
+                }
+            }
+        }
+
+        if (Networks.Any())
+            ImportVisible = false;
+    }
+
+    async Task WriteObjectAsync<T>(string FileName, T item)                                 //Write an object to file
+    {
+        await Task.Run(() =>
+        {
+            using (var writer = new FileStream(FileName, FileMode.Create))
+            {
+                new DataContractSerializer(typeof(T)).WriteObject(writer, item);
+            }
+        });
+    }
+
+    async Task<T?> ReadObjectAsync<T>(string FileName)                                      //Save an object to file
+    {
+        var item = await Task.Run(() =>
+        {
+            using (var fs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
+            {
+                return new DataContractSerializer(typeof(T)).ReadObject(fs);
+            }
+        });
+
+        if (item is null) return default;
+
+        return (T)item;
+    }
+
+    HomePage CurrentHome = new();
+
+    public CommandHandler Home_Click => new CommandHandler(GoHome);                         //Navigate to Home Page
+    async void GoHome()
+    {
+        if (ActivePage.Content is not HomePage)
+            await ReplacePage(ActivePage, CurrentHome);
+
+        SelectedNetwork = null;
+    }
+
+    public MainViewModel()                                                                  //Set Active Page to Home Page when loaded
+    {
+        ActivePage.Content = CurrentHome;
+    }
 }

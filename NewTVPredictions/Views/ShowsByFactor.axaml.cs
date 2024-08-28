@@ -1,12 +1,13 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using NewTVPredictions.ViewModels;
 
 namespace NewTVPredictions;
 
-public partial class ModifyShow : UserControl
+public partial class ShowsByFactor : UserControl
 {
-    public ModifyShow()
+    public ShowsByFactor()
     {
         InitializeComponent();
     }
