@@ -6,7 +6,6 @@
         xmlns:views="clr-namespace:NewTVPredictions.Views"
         mc:Ignorable="d" 
         x:Class="NewTVPredictions.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
         Title="TV Predictions"
         WindowStartupLocation="CenterScreen"
         TransparencyLevelHint="Mica"
@@ -15,6 +14,7 @@
         Width="1024"
         Height="768"
         MinWidth="768"
-        PointerPressed="Window_PointerPressed">
+        PointerPressed="Window_PointerPressed"
+        >
         <views:MainView />
 </Window>

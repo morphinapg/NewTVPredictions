@@ -12,6 +12,12 @@
           <Setter Property="Padding" Value="0" />
         </Style>
       </ListBox.Styles>
+
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate>
+          <StackPanel/>
+        </ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
       
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="vm:Show">

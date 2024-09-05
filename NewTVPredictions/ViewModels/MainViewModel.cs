@@ -132,14 +132,12 @@ public partial class MainViewModel : ViewModelBase
                     CurrentNetworkHome = new();
 
                 await ReplacePage(ActivePage!, CurrentNetworkHome);
-
-                if (SubPage.Content is null)
-                    SubPage.Content = new Predictions();
-                else
-                    SwitchTab();
             }
 
-            CurrentNetwork = SelectedNetwork;
+            if (SubPage.Content is null)
+                SubPage.Content = new Predictions();
+            else
+                SwitchTab();
         }
     }
 
@@ -219,15 +217,15 @@ public partial class MainViewModel : ViewModelBase
                 break;
             case SHOWS_BY_FACTOR:
                 if (CurrentShowsByFactor is null)
-                    CurrentShowsByFactor = new();                
+                    CurrentShowsByFactor = new();
+
+                SelectedNetwork?.SubscribeToFactors();
 
                 if (SubPage?.Content is not ShowsByFactor)
-                {
-                    SelectedNetwork?.SubscribeToFactors();
                     await ReplacePage(SubPage!, CurrentShowsByFactor);
-                }                    
 
                 SelectedNetwork?.ResetShow();
+                SelectedNetwork?.Factor_Toggled(this, new EventArgs());
 
                 break;
         }

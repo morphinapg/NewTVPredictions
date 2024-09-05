@@ -244,7 +244,7 @@ namespace NewTVPredictions.ViewModels
             ShowsFilteredByFactor.Clear();
         }
 
-        private void Factor_Toggled(object? sender, EventArgs e)                                                                    //When factors are toggled, update ShowsFilteredByFactor
+        public void Factor_Toggled(object? sender, EventArgs e)                                                                    //When factors are toggled, update ShowsFilteredByFactor
         {
             var SelectedFactors = Factors.Where(x => x.IsTrue);
 
@@ -254,7 +254,7 @@ namespace NewTVPredictions.ViewModels
                 Shows.Where(x => SelectedFactors.All(y => x.Factors.Contains(y))) :
                 Shows.Where(x => x.Year == CurrentYear && SelectedFactors.All(y => x.Factors.Contains(y)));
 
-                shows = shows.OrderBy(x => x.Name).ThenBy(x => x.Season);
+                shows = ShowAllYears ? shows.OrderBy(x => x.Name).ThenBy(x => x.Year).ThenBy(x => x.Season) : shows.OrderBy(x => x.Name).ThenBy(x => x.Season);
 
                 var ShowNames = ShowAllYears ?
                     shows.Select(x => x.Name + " (Season " + x.Season + ")") :

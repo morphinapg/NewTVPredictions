@@ -7,12 +7,12 @@
              x:Class="NewTVPredictions.AddShow"
              x:DataType="vm:MainViewModel">
 
-  <Grid RowDefinitions="Auto,*,Auto" DataContext="{Binding SelectedNetwork}" x:DataType="vm:Network">
-    <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="*"/>
-      <ColumnDefinition Width="4*" MinWidth="400"/>
-      <ColumnDefinition Width="*"/>
-    </Grid.ColumnDefinitions>
+  <Grid RowDefinitions="Auto,*,Auto" DataContext="{Binding SelectedNetwork}" x:DataType="vm:Network" Margin="10">
+    <!--<Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto"/>
+      <ColumnDefinition Width="6*" MinWidth="400"/>
+      <ColumnDefinition Width="Auto"/>
+    </Grid.ColumnDefinitions>-->
 
     <Grid.Styles>
       <Style Selector="TextBlock">
@@ -45,10 +45,10 @@
       </Style>
     </Grid.Styles>
 
-    <TextBlock Grid.Column="1" Text="Add a New Show" FontSize="36" HorizontalAlignment="Center"/>
+    <TextBlock Text="Add a New Show" FontSize="36" HorizontalAlignment="Center"/>
 
-    <ScrollViewer Grid.Row="1" Grid.Column="1" >
-      <Grid RowDefinitions="Auto,*,Auto">
+    <ScrollViewer Grid.Row="1">
+      <Grid RowDefinitions="Auto,*,Auto" Margin="10">
         <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" DataContext="{Binding CurrentShow}" x:DataType="vm:Show" x:Name="ShowGrid">
 
           <TextBlock Text="Show Name:" FontSize="20" Grid.ColumnSpan="2"/>
@@ -82,7 +82,7 @@
       </Grid>      
     </ScrollViewer>    
 
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="4" Grid.Column="1">
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="4" >
       <Button Content="Reset" Command="{Binding ResetShow_Clicked}"/>
       <Button Content="Add" Command="{Binding AddShow_Clicked}"/>
     </StackPanel>

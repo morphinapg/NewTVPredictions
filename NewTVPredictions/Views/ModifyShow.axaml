@@ -5,12 +5,7 @@
              xmlns:vm="clr-namespace:NewTVPredictions.ViewModels"
              mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="768"
              x:Class="NewTVPredictions.ModifyShow" x:DataType="vm:MainViewModel">
-  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" DataContext="{Binding SelectedNetwork}" x:DataType="vm:Network">
-    <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="*"/>
-      <ColumnDefinition Width="4*" MinWidth="400"/>
-      <ColumnDefinition Width="*"/>
-    </Grid.ColumnDefinitions>
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" DataContext="{Binding SelectedNetwork}" x:DataType="vm:Network" Margin="10">
 
     <Grid.Styles>
       <Style Selector="TextBlock">
@@ -53,7 +48,7 @@
     <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding AlphabeticalShows}" HorizontalAlignment="Stretch" SelectedItem="{Binding CurrentShow}"/>
 
     <ScrollViewer Grid.Row="3" Grid.Column="1" IsVisible="{Binding ModifyEnabled}">
-      <Grid  RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" ColumnDefinitions="*,Auto" DataContext="{Binding CurrentModifyShow}" x:DataType="vm:Show" x:Name="ShowGrid" >
+      <Grid  RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" ColumnDefinitions="*,Auto" DataContext="{Binding CurrentModifyShow}" x:DataType="vm:Show" x:Name="ShowGrid" Margin="10" >
 
         <TextBlock Text="Show Name:" FontSize="20" Grid.ColumnSpan="2"/>
         <TextBox Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Name}" x:Name="NameBox"/>
