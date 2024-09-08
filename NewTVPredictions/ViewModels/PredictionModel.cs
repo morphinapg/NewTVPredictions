@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Avalonia.Media.Imaging;
+using MathNet.Numerics.Distributions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -188,14 +190,46 @@ namespace NewTVPredictions.ViewModels
         /// Predict two outputs for a given show. Formatted in Log10.
         /// </summary>
         /// <param name="Show">The Show to be predicted</param>
-        /// <returns>Output 0: Show performance, Output 1: Renewal Threshold</returns>
-        public double[] GetOutputs(Show Show)
+        /// <returns>
+        /// Output 0: Show performance in Ratings
+        /// Output 1: Show performance in Viewers
+        /// Output 2: Renewal threshold in Ratings
+        /// Output 3: Renewal threshold in Viewers
+        /// Output 4: Blend factor
+        /// </returns>
+        public double[] GetOutputs(Show Show, int? Episode = null)
         {
-            if (Show.Year is null)
-                throw new Exception("The Show is missing a Year value!");
-
             //First, we need to calculate the Show's current performance in both ratings and viewers
-            var NumberOfInputs = Show.Ratings.Count + 1;
+            var output = GetPerformance(Show, 0, Episode);
+            var RatingsScore = output[0];
+
+            output = GetPerformance(Show, 1, Episode);
+            var ViewersScore = output[0];
+
+            //Next, we need to calculate renewal threshold and blend level
+
+            output = GetThresholds(Show);
+            var RatingThreshold = output[0];
+            var ViewerThreshold = output[1];
+            var Blend = 1 / (1 + Math.Exp(-1 * output[2]));
+
+            return new double[] { RatingsScore, ViewersScore, RatingThreshold, ViewerThreshold, Blend };
+        }
+
+        /// <summary>
+        /// Get the show Ratings/Viewers performance for the season
+        /// </summary>
+        /// <param name="Show">The show to be predicted</param>
+        /// <param name="InputType">0 for Ratings, 1 for Viewers</param>
+        /// <param name="Episode">Specify the first x number of episodes</param>
+        /// <returns>A number representing the season-wide performance of the show, in Ratings or Viewers (Log10)</returns>
+        public double[] GetPerformance(Show Show, int InputType = 0, int? Episode = null)
+        {
+            var NumberOfEpisodes = InputType == 0 ? Show.Ratings.Count : Show.Viewers.Count;
+            if (Episode is not null)
+                NumberOfEpisodes = Math.Min(Episode.Value, NumberOfEpisodes);
+
+            var NumberOfInputs = NumberOfEpisodes + 1;
 
             var inputs = new double[NumberOfInputs];
 
@@ -203,21 +237,25 @@ namespace NewTVPredictions.ViewModels
             for (int i = 0; i < Show.Ratings.Count; i++)
                 inputs[i + 1] = Convert.ToDouble(Show.Ratings[i]);
 
-            var output = RatingsModel.GetOutput(inputs);
-            var RatingsScore = output[0];
+            return RatingsModel.GetOutput(inputs, InputType);
+        }
 
-            NumberOfInputs = Show.Viewers.Count + 1;
-            inputs = new double[NumberOfInputs];
-            inputs[0] = Show.Episodes;
-            for (int i = 0; i < Show.Viewers.Count; i++)
-                inputs[i + 1] = Convert.ToDouble(Show.Viewers[i]);
+        /// <summary>
+        /// Get the renewal thresholds and blend factor for the show
+        /// </summary>
+        /// <param name="Show">The show being predicted</param>
+        /// <returns>
+        /// Output 0: Renewal Threshold in Ratings (Log10)
+        /// Output 1: Renewal Threshold in Viewers (Log10)
+        /// Output 2: Blend factor
+        /// </returns>
+        public double[] GetThresholds(Show Show)
+        {
+            if (Show.Year is null)
+                throw new Exception("The Show is missing a Year value!");
 
-            output = RatingsModel.GetOutput(inputs, 1);
-            var ViewersScore = output[0];
-
-            //Next, we need to calculate renewal threshold and blend level
-            NumberOfInputs = Show.Factors.Count + 5;
-            inputs = new double[NumberOfInputs];
+            var NumberOfInputs = Show.Factors.Count + 5;
+            var inputs = new double[NumberOfInputs];
 
             inputs[0] = Show.Season;
             inputs[1] = Show.PreviousEpisodes;
@@ -230,15 +268,60 @@ namespace NewTVPredictions.ViewModels
                 inputs[i] = Show.Factors[factorIndex].IsTrue ? 1 : -1;
             }
 
-            output = RenewalModel.GetOutput(inputs);
-            var RatingThreshold = output[0];
-            var ViewerThreshold = output[1];
-            var Blend = 1 / (1 + Math.Exp(-1 * output[2]));
+            return RenewalModel.GetOutput(inputs);
+        }
 
-            var ShowPerformance = RatingsScore * Blend + ViewersScore * (1 - Blend);
-            var RenewalThreshold = RatingThreshold * Blend + ViewerThreshold * (1 - Blend);
+        /// <summary>
+        /// Return blended performance and renewal for a Show at current # of episodes
+        /// </summary>
+        /// <param name="Show">Show to be predicted</param>
+        /// <returns>
+        /// Output 0: Show Performance (blended, Log10 value)
+        /// Output 1: Renewal Threshold (blended, Log10 value)
+        /// </returns>
+        public double[] GetPerformanceAndThreshold(Show Show)
+        {
+            var outputs = GetOutputs(Show);
 
-            return new double[] { ShowPerformance, RenewalThreshold };
+            var Blend = outputs[4];
+            var ShowPerformance = outputs[0] * Blend + outputs[1] * (1 - Blend);
+            var ShowThreshold = outputs[2] * Blend + outputs[3] * (1 - Blend);
+
+            return new double[] { ShowPerformance, ShowThreshold };
+        }
+
+        /// <summary>
+        /// Get the renewal odds of a Show
+        /// </summary>
+        /// <param name="Show">Show to be predicted</param>
+        /// <param name="MarginOfError">
+        /// Precalculated Margin of error.
+        /// This will be based on the accuracy of the model for all shows around the same % episodes completed.
+        /// </param>
+        /// <returns>Percentage odds of renewal</returns>
+        public double GetOdds(Show Show, double MarginOfError)
+        {
+            var outputs = GetPerformanceAndThreshold(Show);
+            return GetOdds(outputs, MarginOfError);
+        }
+
+        /// <summary>
+        /// Get the renewal odds of a show, given the Performance and Threshold
+        /// </summary>
+        /// <param name="outputs">Output of GetPerformanceAndThreshold</param>
+        /// <param name="MarginOfError">
+        /// Precalculated Margin of error.
+        /// This will be based on the accuracy of the model for all shows around the same % episodes completed.
+        /// </param>
+        /// <returns>Percentage odds of renewal</returns>
+        public double GetOdds(double[] outputs, double MarginOfError)
+        {
+            var ShowPerformance = outputs[0];
+            var ShowThreshold = outputs[1];
+
+            var Normal = new Normal(ShowThreshold, MarginOfError);
+
+            return Normal.CumulativeDistribution(ShowPerformance);
         }
     }    
 }
