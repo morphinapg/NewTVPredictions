@@ -12,7 +12,7 @@ namespace NewTVPredictions.ViewModels
     internal class NeuralNetwork : Breedable
     {
         [DataMember]
-        double[] inputbias, inputweight;                                                                                //Values used to pre-normalize the input values
+        List<double[]> InputAverage, InputDeviation, OutputBias;                                                        //Values used to pre-normalize the input values, and adjust output values
 
         [DataMember]
         int InputCount, OutputCount;                                                                                    //How many inputs and outputs the neural network will be capable of handling
@@ -30,22 +30,34 @@ namespace NewTVPredictions.ViewModels
         double mutationrate, mutationintensity;                                                                         //values for controlling evolution
 
         [DataMember]
-        bool IsMutated;
+        public bool IsMutated;
 
         /// <summary>
         /// Creates a new Neural Network
         /// </summary>
         /// <param name="inputs">Number of Inputs</param>
-        /// <param name="bias">bias value for each input</param>
-        /// <param name="weight">weight value for each input</param>
-        /// <param name="outputs">(optional) Number of output values</param>
-        public NeuralNetwork(int inputs, double[] bias, double[] weight, int outputs = 1)
+        /// <param name="average">average value for each input, with a list for each input type</param>
+        /// <param name="deviation">deviation value for each input, with a list for each input type</param>
+        /// <param name="outputbias">average value of what the outputs should be, with a list for each input type</param>
+        public NeuralNetwork(List<double[]> average, List<double[]> deviation, List<double[]> outputbias)
         {
-            inputbias = bias;
-            inputweight = weight;
+            if (average.Count == 0 || deviation.Count == 0)
+                throw new Exception("Average and/or Deviation values missing!");
+            if (average.Count != deviation.Count)
+                throw new Exception("Input Types mismatch on Average and Deviation!");
+            if (average.Concat(deviation).Select(x => x.Length != average[0].Length).Any())
+                throw new Exception("Number of inputs does not match on every instance of average/deviation!");
+            if (average.Count != outputbias.Count)
+                throw new Exception("Input and output types do not match!");
+            if (outputbias.Select(x => x.Length != outputbias[0].Length).Any())
+                throw new Exception("Number of outputs does not match for every outputbias!");
 
-            InputCount = inputs;
-            OutputCount = outputs;
+            InputCount = average[0].Length;
+            OutputCount = outputbias[0].Length;
+
+            InputAverage = average;
+            InputDeviation = deviation;
+            OutputBias = outputbias;
 
             int CurrentLayer = (int)Math.Round(InputCount * 2.0 / 3 + OutputCount, 0);
 
@@ -92,12 +104,29 @@ namespace NewTVPredictions.ViewModels
             InputCount = other.InputCount;
             OutputCount = other.OutputCount;
 
-            inputbias = new double[InputCount];
-            inputweight = new double[InputCount];
-            for (int i = 0; i < InputCount; i++)
+            InputAverage = new();
+            InputDeviation = new();
+            OutputBias = new();
+            var InputTypes = other.InputAverage.Count;
+
+            for (int i = 0; i < InputTypes; i++)
             {
-                inputbias[i] = other.inputbias[i];
-                inputweight[i] = other.inputweight[i];
+                var bias = new double[InputCount];
+                var weight = new double[InputCount];
+                var outputbias = new double[OutputCount];
+
+                for (int x = 0; x < InputCount; x++)
+                {
+                    bias[x] = other.InputAverage[i][x];
+                    weight[x] = other.InputDeviation[i][x];
+                }
+
+                for (int x = 0; x < OutputCount; x++)
+                    outputbias[x] = other.OutputBias[i][x];
+
+                InputAverage.Add(bias);
+                InputDeviation.Add(weight);
+                OutputBias.Add(outputbias);
             }
 
             LayerSizes = new();
@@ -128,16 +157,20 @@ namespace NewTVPredictions.ViewModels
         /// Run a series of inputs through the nerual network and achieve an output
         /// </summary>
         /// <param name="inputs">The input values</param>
-        /// <param name="smallerinput">If the inputs are smaller than the full amount expected, set to true</param>
+        /// <param name="InputType">If there are multiple input types, this allows input data to be preformatted in different ways</param>
         /// <returns>double[] representing the output of the neural network</returns>
-        public double[] GetOutput(double[] inputs, bool smallerinput = false)
+        public double[] GetOutput(double[] inputs, int InputType = 0)
         {
             //For the purpose of recurrent neural networks, a lower number of inputs is allowed
-            var CurrentInputSize = smallerinput ? inputs.Length : InputCount;
+            var CurrentInputSize = inputs.Length;
+
+            //Choose the correct Input Bias and Weight based on InputType
+            var bias = InputAverage[InputType];
+            var deviation = InputDeviation[InputType];
 
             //Preformat inputs with bias and weights
             for (int i = 0; i < CurrentInputSize; i++)
-                inputs[i] = (inputs[i] + inputbias[i]) * inputweight[i];
+                inputs[i] = (inputs[i] - bias[i]) / deviation[i];
 
             //Run through every hidden layer
             double[] CurrentOutputs, CurrentInputs;
@@ -159,7 +192,7 @@ namespace NewTVPredictions.ViewModels
             //Calculate output layer results
             CurrentOutputs = new double[OutputCount];
             for (int i = 0; i < OutputCount; i++)
-                CurrentOutputs[i] = OutputLayer[i].GetOutput(CurrentInputs, true);
+                CurrentOutputs[i] = OutputLayer[i].GetOutput(CurrentInputs, true) + OutputBias[InputType][i];
 
             return CurrentOutputs;
         }
@@ -214,17 +247,15 @@ namespace NewTVPredictions.ViewModels
             mutationrate = MutateValue(mutationrate);
             mutationintensity = MutateValue(mutationintensity);
 
-            //Now, mutate the input bias and weight values
-            var InputActions = Enumerable.Range(0, InputCount).SelectMany(i => new[]
-            {
-                new Action(() => inputbias[i] = MutateValue(inputbias[i])),
-                new Action(() => inputweight[i] = MutateValue(inputweight[i]))
-            });
+            //Mutate the input bias and weight values
+            var InputAverageActions = InputAverage.Select(x => Enumerable.Range(0, InputCount).Select<int, Action>(i => () => x[i] = MutateValue(x[i]))).SelectMany(x => x);
+            var InputDeviationActions = InputDeviation.Select(x => Enumerable.Range(0, InputCount).Select<int, Action>(i => () => x[i] = MutateValue(x[i]))).SelectMany(x => x);
+            var OutputBiasActions = OutputBias.Select(x => Enumerable.Range(0, OutputCount).Select<int, Action>(i => () => x[i] = MutateValue(x[i]))).SelectMany(x => x);
 
             //Now, mutate the neurons in the hidden and output layers
             var NeuronActions = HiddenLayers.SelectMany(x => x).Concat(OutputLayer).Select(x => x.GetMutationActions(mutationrate, mutationintensity)).SelectMany(x => x);
 
-            return InputActions.Concat(NeuronActions);
+            return InputAverageActions.Concat(InputDeviationActions).Concat(OutputBiasActions).Concat(NeuronActions);
         }
 
         /// <summary>
@@ -251,12 +282,29 @@ namespace NewTVPredictions.ViewModels
             InputCount = x.InputCount;
             OutputCount = x.OutputCount;
 
-            inputbias = new double[InputCount];
-            inputweight = new double[InputCount];
-            for (int i = 0; i < InputCount; i++)
+            InputAverage = new();
+            InputDeviation = new();
+            OutputBias = new();
+            var InputTypes = x.InputAverage.Count;
+
+            for (int i = 0; i < InputTypes; i++)
             {
-                inputbias[i] = Breed(x.inputbias[i], y.inputbias[i]);
-                inputweight[i] = Breed(x.inputweight[i], y.inputweight[i]);
+                var bias = new double[InputCount];
+                var weight = new double[InputCount];                
+
+                for (int j = 0; j < InputCount; j++)
+                {
+                    bias[j] = Breed(x.InputAverage[i][j], y.InputAverage[i][j]);
+                    weight[j] = Breed(x.InputAverage[i][j], y.InputAverage[i][j]);
+                }
+
+                var outputbias = new double[OutputCount];
+                for (int j = 0; j < OutputCount; j++)
+                    outputbias[j] = Breed(x.OutputBias[i][j], y.OutputBias[i][j]);
+
+                InputAverage.Add(bias);
+                InputDeviation.Add(weight);
+                OutputBias.Add(outputbias);
             }
 
             LayerSizes = new();
