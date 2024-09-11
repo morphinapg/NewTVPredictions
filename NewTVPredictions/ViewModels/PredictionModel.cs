@@ -3,6 +3,7 @@ using MathNet.Numerics.Distributions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
@@ -12,14 +13,14 @@ using TV_Ratings_Predictions;
 namespace NewTVPredictions.ViewModels
 {
     [DataContract]
-    public class PredictionModel : ViewModelBase
+    public class PredictionModel : ViewModelBase, IComparable<PredictionModel>
     {
         [DataMember]
         NeuralNetwork RatingsModel, RenewalModel;           //The neural networks core to the function of the PredictionModel
 
         [DataMember]
-        double _error;                                      //Representation of how many incorrect predictions there were, and by how much
-        public double Error                                 //Some additional error values may be added as well, to optimize the RatingsModel
+        double? _error;                                     //Representation of how many incorrect predictions there were, and by how much
+        public double? Error                                //Some additional error values may be added as well, to optimize the RatingsModel
         {
             get => _error;
             set
@@ -30,8 +31,8 @@ namespace NewTVPredictions.ViewModels
         }
 
         [DataMember]
-        double _accuracy;
-        public double Accuracy                              //Represents what % of shows the model predicts correctly
+        double? _accuracy;
+        public double? Accuracy                              //Represents what % of shows the model predicts correctly
         {
             get => _accuracy;
             set
@@ -481,5 +482,95 @@ namespace NewTVPredictions.ViewModels
             else
                 return new StatsContainer(Math.Abs(Performance - Threshold), Weight);
         }
+
+        /// <summary>
+        /// Blend two PredictionModels together
+        /// </summary>
+        /// <param name="x">First PredictionModel</param>
+        /// <param name="y">Second PredictionModel</param>
+        public PredictionModel(PredictionModel x, PredictionModel y)
+        {
+            RatingsModel = x.RatingsModel + y.RatingsModel;
+            RenewalModel = x.RenewalModel + y.RenewalModel;
+            Network = x.Network;
+        }
+
+        public static PredictionModel operator+(PredictionModel x, PredictionModel y)
+        {
+            return new PredictionModel(x, y);
+        }
+
+        /// <summary>
+        /// Get all actions needed to mutate both NeuralNetworks in the PredictionModel
+        /// </summary>
+        /// <returns>IEnumerable of all actions needed to mutate the model</returns>
+        public IEnumerable<Action> GetMutationActions()
+        {
+            return RatingsModel.GetMutationActions().Concat(RenewalModel.GetMutationActions());
+        }
+
+        /// <summary>
+        /// Mutate the PredictionModel
+        /// </summary>
+        public void MutateModel(bool parallel = true)
+        {
+            var MutationActions = GetMutationActions();
+            if (parallel)
+                Parallel.ForEach(MutationActions, x => x());
+            else
+                foreach (var action in MutationActions)
+                    action();
+
+            RatingsModel.CheckIfNeuronsMutated();
+            RenewalModel.CheckIfNeuronsMutated();
+        }
+
+        /// <summary>
+        /// Provides the ability to sort Prediction models by most accurate first, then by lowest error
+        /// </summary>
+        /// <param name="other">PredictionModel to compare to</param>
+        public int CompareTo(PredictionModel? other)
+        {
+            if (other is null) return 1;
+
+            if (other.Accuracy == Accuracy)
+            {
+                if (other.Error == Error)
+                    return 0;
+                else if (other.Error < Error)
+                    return 1;
+                else
+                    return -1;
+            }
+            else if (other.Accuracy > Accuracy)
+                return 1;
+            else
+                return -1;
+        }
+
+        /// <summary>
+        /// Check for equality between this PredictionModel and another object
+        /// </summary>
+        /// <param name="obj">Object to compare</param>
+        /// <returns>true or false, whether the objects are equal</returns>
+        public override bool Equals(object? obj)
+        {
+            if (obj is null) return false;
+
+            if (obj is PredictionModel model && model.Accuracy == Accuracy && model.Error == Error)
+                return true;
+            else
+                return false;
+        }
+
+        public override int GetHashCode() => (Accuracy, Error).GetHashCode();
+
+        public static bool operator ==(PredictionModel x, PredictionModel y) => x.Equals(y);
+
+        public static bool operator !=(PredictionModel x, PredictionModel y) => !x.Equals(y);
+
+        public static bool operator <(PredictionModel x, PredictionModel y) => x.Accuracy < y.Accuracy || (x.Accuracy == y.Accuracy && x.Error > y.Error);
+
+        public static bool operator >(PredictionModel x, PredictionModel y) => x.Accuracy > y.Accuracy || (x.Accuracy == y.Accuracy && x.Error < y.Error);
     }    
 }

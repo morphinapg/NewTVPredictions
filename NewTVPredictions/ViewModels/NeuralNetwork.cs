@@ -227,11 +227,15 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// Perform mutation on the model
         /// </summary>
-        public void MutateModel()
+        public void MutateModel(bool parallel = true)
         {
             var MutationActions = GetMutationActions();
 
-            Parallel.ForEach(MutationActions, x => x());
+            if (parallel)
+                Parallel.ForEach(MutationActions, x => x());
+            else
+                foreach (var action in MutationActions)
+                    action();
 
             CheckIfNeuronsMutated();
         }
