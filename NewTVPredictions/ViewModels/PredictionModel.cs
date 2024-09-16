@@ -15,9 +15,11 @@ namespace NewTVPredictions.ViewModels
     [DataContract]
     public class PredictionModel : Predictable, IComparable<PredictionModel>
     {
+        //The neural networks core to the function of the PredictionModel
         [DataMember]
-        NeuralNetwork RatingsModel, RenewalModel;           //The neural networks core to the function of the PredictionModel
+        NeuralNetwork RatingsModel, RenewalModel;           
 
+        //A reference to the parent network
         [DataMember]
         Network Network;        
 
@@ -274,7 +276,8 @@ namespace NewTVPredictions.ViewModels
         public double GetOdds(Show Show)
         {
             var outputs = GetPerformanceAndThreshold(Show);
-            return GetOdds(outputs);
+            var Episodes = new EpisodePair(Math.Min(Show.Ratings.Count, Show.Viewers.Count), Show.Episodes);
+            return GetOdds(outputs, Episodes);
         }
 
         /// <summary>
@@ -283,12 +286,12 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         /// <param name="outputs">Output of GetPerformanceAndThreshold</param>
         /// <returns>Percentage odds of renewal</returns>
-        public double GetOdds(double[] outputs)
+        public double GetOdds(double[] outputs, EpisodePair Episodes)
         {
             var ShowPerformance = outputs[0];
             var ShowThreshold = outputs[1];
 
-            var Normal = new Normal(ShowThreshold, MarginOfError!.Value);
+            var Normal = new Normal(ShowThreshold, MarginOfError[Episodes]);
 
             return Normal.CumulativeDistribution(ShowPerformance);
         }
@@ -310,7 +313,8 @@ namespace NewTVPredictions.ViewModels
             var PredictionActions = GetPredictionActions(WeightedShows);
 
             //Now that we have the actions necessary, we need to calculate prediction accuracy:
-            SetAccuracyAndError(RatingsActions, PredictionActions);
+            var EpisodePairs = WeightedShows.Select(x => x.Show.Episodes).Distinct().Select(Total => Enumerable.Range(1, Total).Select(Current => new EpisodePair(Current, Total))).SelectMany(x => x);
+            SetAccuracyAndError(RatingsActions, PredictionActions, EpisodePairs);
         }
 
         /// <summary>
@@ -426,7 +430,7 @@ namespace NewTVPredictions.ViewModels
         {
             //Retrieve ratings and viewer performance and thresholds
             var Outputs = GetOutputs(Show, EpisodeNumber);
-            double Error = 0, Correct = 0,
+            double Error = 0,
                 RatingPerformance = Outputs[0],
                 ViewerPerformance = Outputs[1],
                 RatingThreshold = Outputs[2],
@@ -436,27 +440,29 @@ namespace NewTVPredictions.ViewModels
                 BlendedThreshold = RatingThreshold * Blend + ViewerThreshold * (1 - Blend),
                 RatingDistance = Math.Abs(RatingPerformance - RatingThreshold),
                 ViewerDistance = Math.Abs(ViewerPerformance - ViewerThreshold),
-                BlendedDistance = Math.Abs(BlendedPerformance - BlendedThreshold);
+                BlendedDistance = Math.Abs(BlendedPerformance - BlendedThreshold),
+                CurrentPosition = EpisodeNumber / (double)Show.Episodes;
 
             //First, check if the prediction was accurate
-            if (Show.Renewed && BlendedPerformance > BlendedThreshold || Show.Canceled && BlendedPerformance < BlendedThreshold)
-                Correct = 1;
 
             bool
+                PredictionCorrect = Show.Renewed && BlendedPerformance > BlendedThreshold || Show.Canceled && BlendedPerformance < BlendedThreshold,
                 RatingCorrect = Show.Renewed && RatingPerformance > RatingThreshold || Show.Canceled && RatingPerformance < RatingThreshold,
                 ViewerCorrect = Show.Canceled && ViewerPerformance > ViewerThreshold || Show.Canceled && ViewerPerformance < ViewerThreshold;
 
+            var EpisodePair = new EpisodePair(EpisodeNumber, Show.Episodes);
+
             //Next, determine Error.
-            if (Show.Renewed && Show.Canceled && MarginOfError.HasValue)
+            if (Show.Renewed && Show.Canceled && MarginOfError.ContainsKey(EpisodePair))
             {
                 //If the show is Renewed && Canceled(renewed for final season) and if there is a MarginOfError set
                 //then a show in this position should ideally have a renewal probability of 55%
                 //Error will be the distance between the show's performance and a target performance level that would achieve 55% odds
 
                 double
-                    Margin = MarginOfError.Value,
-                    RMargin = RatingMargin.HasValue ? RatingMargin.Value : Margin,
-                    VMargin = ViewerMargin.HasValue ? ViewerMargin.Value : Margin,
+                    Margin = MarginOfError[EpisodePair],
+                    RMargin = RatingMargin.ContainsKey(EpisodePair) ? RatingMargin[EpisodePair] : Margin,
+                    VMargin = ViewerMargin.ContainsKey(EpisodePair) ? ViewerMargin[EpisodePair] : Margin,
                     TargetRating = RatingThreshold + RMargin * 0.125661346855074,
                     TargetViewer = ViewerThreshold + VMargin * 0.125661346855074,
                     TargetBlended = BlendedPerformance + Margin * 0.125661346855074;
@@ -471,17 +477,17 @@ namespace NewTVPredictions.ViewModels
                 //If not, it should be the difference between the renewalthreshold and performance
                 //Do this for ratings, viewers, and blended
 
-                if (Show.Renewed && RatingPerformance < RatingThreshold || Show.Canceled && RatingPerformance > RatingThreshold)
+                if (!RatingCorrect)
                     Error += RatingDistance * 0.5;
 
-                if (Show.Renewed && ViewerPerformance < ViewerThreshold || Show.Canceled && ViewerPerformance > ViewerThreshold)
+                if (!ViewerCorrect)
                     Error += ViewerDistance * 0.5;
 
-                if (Correct == 0)
+                if (!PredictionCorrect)
                     Error += BlendedDistance;
             }
 
-            return new ShowErrorContainer(this, Correct, Error, Weight, RatingCorrect, ViewerCorrect, RatingDistance, ViewerDistance, BlendedDistance);
+            return new ShowErrorContainer(this, PredictionCorrect, Error, Weight, CurrentPosition, RatingCorrect, ViewerCorrect, RatingDistance, ViewerDistance, BlendedDistance);
 
         }
 
@@ -495,6 +501,68 @@ namespace NewTVPredictions.ViewModels
             RatingsModel = x.RatingsModel + y.RatingsModel;
             RenewalModel = x.RenewalModel + y.RenewalModel;
             Network = x.Network;
+
+            //The margins of error will ultimately be rewritten when TestAccuracy is calculated
+            //But because they are needed to calculate the error value of renanceled shows (renewed for final season)
+            //a temporary estimate will be retained which is the average of the two values
+            //In all likelihood, this value should be pretty close to the final calculated margins
+
+            var AllKeys =
+                x.MarginOfError.Keys
+                .Concat(y.MarginOfError.Keys)
+                .Concat(x.RatingMargin.Keys)
+                .Concat(y.RatingMargin.Keys)
+                .Concat(x.ViewerMargin.Keys)
+                .Concat(y.ViewerMargin.Keys)
+                .Distinct();
+
+            foreach (var Key in AllKeys)
+            {
+                //First, set MarginOfError
+                double? value1 = null, value2 = null;
+                if (x.MarginOfError.ContainsKey(Key))
+                    value1 = x.MarginOfError[Key];
+
+                if (y.MarginOfError.ContainsKey(Key))
+                    value2 = y.MarginOfError[Key];
+
+                var avg = new[] { value1, value2 }.Average();
+
+                if (avg is not null)
+                    MarginOfError[Key] = avg.Value;
+
+                //Next, set RatingMargin
+
+                value1 = null;
+                value2 = null;
+
+                if (x.RatingMargin.ContainsKey(Key))
+                    value1 = x.RatingMargin[Key];
+
+                if (y.RatingMargin.ContainsKey(Key))
+                    value2 = y.RatingMargin[Key];
+
+                avg = new[] { value1, value2 }.Average();
+
+                if (avg is not null)
+                    RatingMargin[Key] = avg.Value;
+
+                //Finally, set ViewerMargin
+
+                value1 = null;
+                value2 = null;
+
+                if (x.ViewerMargin.ContainsKey(Key))
+                    value1 = x.ViewerMargin[Key];
+
+                if (y.ViewerMargin.ContainsKey(Key))
+                    value2 = y.ViewerMargin[Key];
+
+                avg = new[] { value1, value2 }.Average();
+
+                if (avg is not null)
+                    ViewerMargin[Key] = avg.Value;
+            }
         }
 
         public static PredictionModel operator+(PredictionModel x, PredictionModel y)

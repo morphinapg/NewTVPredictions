@@ -11,8 +11,14 @@ namespace NewTVPredictions.ViewModels
     [DataContract]
     public class Predictable : ViewModelBase
     {
+        //[DataMember]
+        //public double? MarginOfError, RatingMargin, ViewerMargin;
+
         [DataMember]
-        public double? MarginOfError, RatingMargin, ViewerMargin;
+        public Dictionary<EpisodePair, double>
+            MarginOfError = new(),
+            RatingMargin = new(),
+            ViewerMargin = new();
 
         [DataMember]
         double? _error;                                     //Representation of how many incorrect predictions there were, and by how much
@@ -38,28 +44,51 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+
         /// <summary>
         /// Calculate the Margin of Error for these prediction results
         /// </summary>
-        public void CalculateMarginOfError(IEnumerable<ShowErrorContainer> PredictionResults)
+        public void CalculateMarginOfError(IEnumerable<ShowErrorContainer> PredictionResults, IEnumerable<EpisodePair> EpisodePairs, bool BlendedOnly = false)
         {
+            var MarginActions = GetMarginActions(PredictionResults, EpisodePairs, BlendedOnly);
+
+            Parallel.ForEach(MarginActions, x => x());
+        }
+
+        /// <summary>
+        /// Get all actions needed to calculate the margins of error
+        /// </summary>
+        public IEnumerable<Action> GetMarginActions(IEnumerable<ShowErrorContainer> PredictionResults, IEnumerable<EpisodePair> EpisodePairs, bool BlendedOnly)
+        {
+            return EpisodePairs.Select<EpisodePair, Action>(x => () => CalculateMargins(PredictionResults, x, BlendedOnly));
+        }
+
+        public void CalculateMargins(IEnumerable<ShowErrorContainer> PredictionResults, EpisodePair Episodes, bool BlendedOnly)
+        {
+            double
+                Lowest = Math.Max((Episodes.Current - 1.0) / Episodes.Total, 0),
+                Highest = Math.Min((Episodes.Current + 1.0) / Episodes.Total, 1);
+
             //First, we find the Margin Of Error for blended predictions
-            var Incorrect = PredictionResults.Where(x => x.PredictionCorrect == 0).OrderBy(x => x.BlendedDistance).Select(x => new StatsContainer(x.BlendedDistance, x.Weight)).ToList();
-            var Correct = PredictionResults.Where(x => x.PredictionCorrect == 1).OrderBy(x => x.BlendedDistance).Select(x => new StatsContainer(x.BlendedDistance, x.Weight)).ToList();
+            var Incorrect = PredictionResults.Where(x => !x.PredictionCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.BlendedDistance).Select(x => new StatsContainer(x.BlendedDistance, x.Weight)).ToList();
+            var Correct = PredictionResults.Where(x => x.PredictionCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.BlendedDistance).Select(x => new StatsContainer(x.BlendedDistance, x.Weight)).ToList();
 
-            MarginOfError = GetMargin(Incorrect, Correct);
+            MarginOfError[Episodes] = GetMargin(Incorrect, Correct);
 
-            //Next, find the margin of error for ratings predictions
-            Incorrect = PredictionResults.Where(x => !x.RatingCorrect).OrderBy(x => x.RatingDistance).Select(x => new StatsContainer(x.RatingDistance, x.Weight)).ToList();
-            Correct = PredictionResults.Where(x => x.RatingCorrect).OrderBy(x => x.RatingDistance).Select(x => new StatsContainer(x.RatingDistance, x.Weight)).ToList();
+            if (!BlendedOnly)
+            {
+                //Next, find the margin of error for ratings predictions
+                Incorrect = PredictionResults.Where(x => !x.RatingCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.RatingDistance).Select(x => new StatsContainer(x.RatingDistance, x.Weight)).ToList();
+                Correct = PredictionResults.Where(x => x.RatingCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.RatingDistance).Select(x => new StatsContainer(x.RatingDistance, x.Weight)).ToList();
 
-            RatingMargin = GetMargin(Incorrect, Correct);
+                RatingMargin[Episodes] = GetMargin(Incorrect, Correct);
 
-            //Finally, find the margin of error for viewers predictions
-            Incorrect = PredictionResults.Where(x => !x.ViewerCorrect).OrderBy(x => x.ViewerDistance).Select(x => new StatsContainer(x.ViewerDistance, x.Weight)).ToList();
-            Correct = PredictionResults.Where(x => x.ViewerCorrect).OrderBy(x => x.ViewerDistance).Select(x => new StatsContainer(x.ViewerDistance, x.Weight)).ToList();
+                //Finally, find the margin of error for viewers predictions
+                Incorrect = PredictionResults.Where(x => !x.ViewerCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.ViewerDistance).Select(x => new StatsContainer(x.ViewerDistance, x.Weight)).ToList();
+                Correct = PredictionResults.Where(x => x.ViewerCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.ViewerDistance).Select(x => new StatsContainer(x.ViewerDistance, x.Weight)).ToList();
 
-            ViewerMargin = GetMargin(Incorrect, Correct);
+                ViewerMargin[Episodes] = GetMargin(Incorrect, Correct);
+            }            
         }
 
         /// <summary>
@@ -149,7 +178,7 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         /// <param name="RatingsActions">Actions needed to calculate error on the RatingsModel</param>
         /// <param name="PredictionActions">Actions needed to calculate error on the PredictionModel</param>
-        public void SetAccuracyAndError(IEnumerable<Func<ErrorContainer>> RatingsActions, IEnumerable<Func<ShowErrorContainer>> PredictionActions)
+        public void SetAccuracyAndError(IEnumerable<Func<ErrorContainer>> RatingsActions, IEnumerable<Func<ShowErrorContainer>> PredictionActions, IEnumerable<EpisodePair> EpisodePairs)
         {
             var PredictionResults = PredictionActions.AsParallel().Select(x => x());
             var PredictionWeights = PredictionResults.Sum(x => x.Weight);
@@ -169,7 +198,7 @@ namespace NewTVPredictions.ViewModels
 
             Error = AllTotals / AllWeights;
 
-            CalculateMarginOfError(PredictionResults);
+            CalculateMarginOfError(PredictionResults, EpisodePairs);
         }
     }   
 }
