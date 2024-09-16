@@ -13,40 +13,13 @@ using TV_Ratings_Predictions;
 namespace NewTVPredictions.ViewModels
 {
     [DataContract]
-    public class PredictionModel : ViewModelBase, IComparable<PredictionModel>
+    public class PredictionModel : Predictable, IComparable<PredictionModel>
     {
         [DataMember]
         NeuralNetwork RatingsModel, RenewalModel;           //The neural networks core to the function of the PredictionModel
 
         [DataMember]
-        double? _error;                                     //Representation of how many incorrect predictions there were, and by how much
-        public double? Error                                //Some additional error values may be added as well, to optimize the RatingsModel
-        {
-            get => _error;
-            set
-            {
-                _error = value;
-                OnPropertyChanged(nameof(Error));
-            }
-        }
-
-        [DataMember]
-        double? _accuracy;
-        public double? Accuracy                              //Represents what % of shows the model predicts correctly
-        {
-            get => _accuracy;
-            set
-            {
-                _accuracy = value;
-                OnPropertyChanged(nameof(Accuracy));
-            }
-        }
-
-        [DataMember]
-        Network Network;
-
-        public record StatsContainer(double Value, double Weight);
-        public record WeightedShow(Show Show, double Weight);
+        Network Network;        
 
         public PredictionModel(Network network)
         {
@@ -293,35 +266,29 @@ namespace NewTVPredictions.ViewModels
         }
 
         /// <summary>
-        /// Get the renewal odds of a Show
+        /// Get the renewal odds of a Show. Make sure MarginOfError is already set
         /// </summary>
         /// <param name="Show">Show to be predicted</param>
-        /// <param name="MarginOfError">
-        /// Precalculated Margin of error.
-        /// This will be based on the accuracy of the model for all shows around the same % episodes completed.
         /// </param>
         /// <returns>Percentage odds of renewal</returns>
-        public double GetOdds(Show Show, double MarginOfError)
+        public double GetOdds(Show Show)
         {
             var outputs = GetPerformanceAndThreshold(Show);
-            return GetOdds(outputs, MarginOfError);
+            return GetOdds(outputs);
         }
 
         /// <summary>
-        /// Get the renewal odds of a show, given the Performance and Threshold
+        /// Get the renewal odds of a show, given the Performance and Threshold.
+        /// MarginOfError needs to have been calculated already
         /// </summary>
         /// <param name="outputs">Output of GetPerformanceAndThreshold</param>
-        /// <param name="MarginOfError">
-        /// Precalculated Margin of error.
-        /// This will be based on the accuracy of the model for all shows around the same % episodes completed.
-        /// </param>
         /// <returns>Percentage odds of renewal</returns>
-        public double GetOdds(double[] outputs, double MarginOfError)
+        public double GetOdds(double[] outputs)
         {
             var ShowPerformance = outputs[0];
             var ShowThreshold = outputs[1];
 
-            var Normal = new Normal(ShowThreshold, MarginOfError);
+            var Normal = new Normal(ShowThreshold, MarginOfError!.Value);
 
             return Normal.CumulativeDistribution(ShowPerformance);
         }
@@ -343,23 +310,7 @@ namespace NewTVPredictions.ViewModels
             var PredictionActions = GetPredictionActions(WeightedShows);
 
             //Now that we have the actions necessary, we need to calculate prediction accuracy:
-            var PredictionResults = PredictionActions.AsParallel().Select(x => x());
-            var PredictionWeights = PredictionResults.Sum(x => x.Weight);
-            var PredictionTotals = PredictionResults.Select(x => x.Value == 0 ? x.Weight : 0).Sum();
-
-            Accuracy = PredictionTotals / PredictionWeights;
-
-            PredictionTotals = PredictionResults.Sum(x => x.Value * x.Weight);
-
-            //Now we can get the total error
-            var RatingsResults = RatingsActions.AsParallel().Select(x => x());
-            var RatingsWeights = RatingsResults.Sum(x => x.Weight);
-            var RatingsTotals = RatingsResults.Sum(x => x.Value * x.Weight);
-
-            var AllWeights = PredictionWeights + RatingsWeights;
-            var AllTotals = PredictionTotals + RatingsTotals;
-
-            Error = AllTotals / AllWeights;
+            SetAccuracyAndError(RatingsActions, PredictionActions);
         }
 
         /// <summary>
@@ -367,7 +318,7 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         /// <param name="WeightedShows">Optionally provide a collection of WeightedShows</param>
         /// <returns>IEnumerable of all the actions needed to calculate the errors</returns>
-        public IEnumerable<Func<StatsContainer>> GetRatingsActions(IEnumerable<WeightedShow>? WeightedShows = null)
+        public IEnumerable<Func<ErrorContainer>> GetRatingsActions(IEnumerable<WeightedShow>? WeightedShows = null)
         {
             if (WeightedShows is null)
                 WeightedShows = GetWeightedShows();
@@ -378,10 +329,10 @@ namespace NewTVPredictions.ViewModels
             var AllEpisodeCounts = WeightedShows.Select(x => x.Show.Episodes).Distinct();
 
             //Now we need to generate the tasks needed to calculate the errors resulting from the RatingsModel not matching the correct values
-            var RatingsActions_Middle = AllEpisodeCounts.Select(x => new IEnumerable<Func<StatsContainer>>[]
+            var RatingsActions_Middle = AllEpisodeCounts.Select(x => new IEnumerable<Func<ErrorContainer>>[]
             {
-                WeightedRatings.Select(y => new Func<StatsContainer>( () => GetWeightedRatingsError_Episodes(x, y.Value, y.Weight, 0))),
-                WeightedViewers.Select(y => new Func<StatsContainer>( () => GetWeightedRatingsError_Episodes(x, y.Value, y.Weight, 1)))
+                WeightedRatings.Select(y => new Func<ErrorContainer>( () => GetWeightedRatingsError_Episodes(x, y.Value, y.Weight, 0))),
+                WeightedViewers.Select(y => new Func<ErrorContainer>( () => GetWeightedRatingsError_Episodes(x, y.Value, y.Weight, 1)))
             }).SelectMany(x => x.SelectMany(y => y));
 
             //The next step is to look for predicted ratings values that fall outside of the expected minimum/maximum range
@@ -390,18 +341,18 @@ namespace NewTVPredictions.ViewModels
             var RatingRatio = Convert.ToDouble(WeightedShows.Select(x => x.Show.Ratings.Max() - x.Show.Ratings.Min()).Max());
             var ViewerRatio = Convert.ToDouble(WeightedShows.Select(x => x.Show.Viewers.Max() - x.Show.Viewers.Min()).Max());
 
-            var RatingActions_Bounds = WeightedShows.Select(x => Enumerable.Range(1, x.Show.Ratings.Count).Select(y => new Func<StatsContainer>(() => GetWeightedRatingsError_Show(x.Show, x.Weight, 0, y, RatingRatio)))).SelectMany(x => x);
-            var ViewerActions_Bounds = WeightedShows.Select(x => Enumerable.Range(1, x.Show.Viewers.Count).Select(y => new Func<StatsContainer>(() => GetWeightedRatingsError_Show(x.Show, x.Weight, 1, y, ViewerRatio)))).SelectMany(x => x);
+            var RatingActions_Bounds = WeightedShows.Select(x => Enumerable.Range(1, x.Show.Ratings.Count).Select(y => new Func<ErrorContainer>(() => GetWeightedRatingsError_Show(x.Show, x.Weight, 0, y, RatingRatio)))).SelectMany(x => x);
+            var ViewerActions_Bounds = WeightedShows.Select(x => Enumerable.Range(1, x.Show.Viewers.Count).Select(y => new Func<ErrorContainer>(() => GetWeightedRatingsError_Show(x.Show, x.Weight, 1, y, ViewerRatio)))).SelectMany(x => x);
 
             return RatingsActions_Middle.Concat(RatingActions_Bounds).Concat(ViewerActions_Bounds);
         }
 
-        public IEnumerable<Func<StatsContainer>> GetPredictionActions(IEnumerable<WeightedShow>? WeightedShows = null)
+        public IEnumerable<Func<ShowErrorContainer>> GetPredictionActions(IEnumerable<WeightedShow>? WeightedShows = null)
         {
             if (WeightedShows is null)
                 WeightedShows = GetWeightedShows();
 
-            return WeightedShows.Where(x => x.Show.Renewed || x.Show.Canceled).Select(x => Enumerable.Range(1, Math.Max(x.Show.Ratings.Count, x.Show.Viewers.Count)).Select(y => new Func<StatsContainer>(() => GetWeightedShowError(x.Show, x.Weight, y)))).SelectMany(x => x);
+            return WeightedShows.Where(x => x.Show.Renewed || x.Show.Canceled).Select(x => Enumerable.Range(1, Math.Max(x.Show.Ratings.Count, x.Show.Viewers.Count)).Select(y => new Func<ShowErrorContainer>(() => GetWeightedShowError(x.Show, x.Weight, y)))).SelectMany(x => x);
         }
 
         /// <summary>
@@ -423,7 +374,7 @@ namespace NewTVPredictions.ViewModels
         /// <param name="Weight">The weight of the rating being tested</param>
         /// <param name="InputType">0 = Ratings, 1 = Viewers</param>
         /// <returns>A StatsContainer with the Error and Weight</returns>
-        StatsContainer GetWeightedRatingsError_Episodes(int Episodes, double Rating, double Weight, int InputType)
+        ErrorContainer GetWeightedRatingsError_Episodes(int Episodes, double Rating, double Weight, int InputType)
         {
             var NumberOfInputs = Episodes + 1;
 
@@ -436,7 +387,7 @@ namespace NewTVPredictions.ViewModels
             var output = RatingsModel.GetOutput(inputs, InputType)[0];
             var Error = Math.Abs(output - Rating);
 
-            return new StatsContainer(Error, Weight);
+            return new ErrorContainer(this, Error, Weight);
         }
 
         /// <summary>
@@ -448,7 +399,7 @@ namespace NewTVPredictions.ViewModels
         /// <param name="EpisodeNumber">How many episodes to test in this iteration</param>
         /// <param name="MaxRange">The Maximum allowed range between the lowest or highest rating, and the output of the model</param>
         /// <returns>A StatsContainer containing the error and weight for this test</returns>
-        StatsContainer GetWeightedRatingsError_Show(Show Show, double Weight, int InputType, int EpisodeNumber, double MaxRange)
+        ErrorContainer GetWeightedRatingsError_Show(Show Show, double Weight, int InputType, int EpisodeNumber, double MaxRange)
         {
             var output = GetPerformance(Show, InputType, EpisodeNumber)[0];
 
@@ -461,7 +412,7 @@ namespace NewTVPredictions.ViewModels
 
             var CalculatedError = Math.Max(CalculatedRange - MaxRange, 0);
 
-            return new StatsContainer(CalculatedError, Weight);            
+            return new ErrorContainer(this, CalculatedError, Weight);            
         }
 
         /// <summary>
@@ -471,16 +422,67 @@ namespace NewTVPredictions.ViewModels
         /// <param name="Weight">The weight of the show</param>
         /// <param name="EpisodeNumber">The number of episodes to test</param>
         /// <returns></returns>
-        StatsContainer GetWeightedShowError(Show Show, double Weight, int EpisodeNumber)
+        ShowErrorContainer GetWeightedShowError(Show Show, double Weight, int EpisodeNumber)
         {
-            var outputs = GetPerformanceAndThreshold(Show, EpisodeNumber);
-            var Performance = outputs[0];
-            var Threshold = outputs[1];
+            //Retrieve ratings and viewer performance and thresholds
+            var Outputs = GetOutputs(Show, EpisodeNumber);
+            double Error = 0, Correct = 0,
+                RatingPerformance = Outputs[0],
+                ViewerPerformance = Outputs[1],
+                RatingThreshold = Outputs[2],
+                ViewerThreshold = Outputs[3],
+                Blend = Outputs[4],
+                BlendedPerformance = RatingPerformance * Blend + ViewerPerformance * (1 - Blend),
+                BlendedThreshold = RatingThreshold * Blend + ViewerThreshold * (1 - Blend),
+                RatingDistance = Math.Abs(RatingPerformance - RatingThreshold),
+                ViewerDistance = Math.Abs(ViewerPerformance - ViewerThreshold),
+                BlendedDistance = Math.Abs(BlendedPerformance - BlendedThreshold);
 
-            if (Show.Renewed && Performance > Threshold || Show.Canceled && Performance < Threshold)
-                return new StatsContainer(0, Weight);
+            //First, check if the prediction was accurate
+            if (Show.Renewed && BlendedPerformance > BlendedThreshold || Show.Canceled && BlendedPerformance < BlendedThreshold)
+                Correct = 1;
+
+            bool
+                RatingCorrect = Show.Renewed && RatingPerformance > RatingThreshold || Show.Canceled && RatingPerformance < RatingThreshold,
+                ViewerCorrect = Show.Canceled && ViewerPerformance > ViewerThreshold || Show.Canceled && ViewerPerformance < ViewerThreshold;
+
+            //Next, determine Error.
+            if (Show.Renewed && Show.Canceled && MarginOfError.HasValue)
+            {
+                //If the show is Renewed && Canceled(renewed for final season) and if there is a MarginOfError set
+                //then a show in this position should ideally have a renewal probability of 55%
+                //Error will be the distance between the show's performance and a target performance level that would achieve 55% odds
+
+                double
+                    Margin = MarginOfError.Value,
+                    RMargin = RatingMargin.HasValue ? RatingMargin.Value : Margin,
+                    VMargin = ViewerMargin.HasValue ? ViewerMargin.Value : Margin,
+                    TargetRating = RatingThreshold + RMargin * 0.125661346855074,
+                    TargetViewer = ViewerThreshold + VMargin * 0.125661346855074,
+                    TargetBlended = BlendedPerformance + Margin * 0.125661346855074;
+
+                Error += Math.Abs(RatingPerformance - TargetRating) * 0.5;
+                Error += Math.Abs(ViewerPerformance - TargetViewer) * 0.5;
+                Error += Math.Abs(BlendedPerformance - TargetBlended);
+            }
             else
-                return new StatsContainer(Math.Abs(Performance - Threshold), Weight);
+            {
+                //Otherwise, Error should be 0 if the show was predicted correctly
+                //If not, it should be the difference between the renewalthreshold and performance
+                //Do this for ratings, viewers, and blended
+
+                if (Show.Renewed && RatingPerformance < RatingThreshold || Show.Canceled && RatingPerformance > RatingThreshold)
+                    Error += RatingDistance * 0.5;
+
+                if (Show.Renewed && ViewerPerformance < ViewerThreshold || Show.Canceled && ViewerPerformance > ViewerThreshold)
+                    Error += ViewerDistance * 0.5;
+
+                if (Correct == 0)
+                    Error += BlendedDistance;
+            }
+
+            return new ShowErrorContainer(this, Correct, Error, Weight, RatingCorrect, ViewerCorrect, RatingDistance, ViewerDistance, BlendedDistance);
+
         }
 
         /// <summary>
