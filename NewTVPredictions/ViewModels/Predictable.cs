@@ -176,11 +176,10 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// Given a series of actions, set the model's Accuracy and Error
         /// </summary>
-        /// <param name="RatingsActions">Actions needed to calculate error on the RatingsModel</param>
-        /// <param name="PredictionActions">Actions needed to calculate error on the PredictionModel</param>
-        public void SetAccuracyAndError(IEnumerable<Func<ErrorContainer>> RatingsActions, IEnumerable<Func<ShowErrorContainer>> PredictionActions, IEnumerable<EpisodePair> EpisodePairs)
+        /// <param name="RatingResults">Actions needed to calculate error on the RatingsModel</param>
+        /// <param name="PredictionResults">Actions needed to calculate error on the PredictionModel</param>
+        public void SetAccuracyAndError(IEnumerable<ErrorContainer> RatingsResults, IEnumerable<ShowErrorContainer> PredictionResults, IEnumerable<EpisodePair> EpisodePairs)
         {
-            var PredictionResults = PredictionActions.AsParallel().Select(x => x());
             var PredictionWeights = PredictionResults.Sum(x => x.Weight);
             var PredictionTotals = PredictionResults.Select(x => x.Error == 0 ? x.Weight : 0).Sum();
 
@@ -189,7 +188,6 @@ namespace NewTVPredictions.ViewModels
             PredictionTotals = PredictionResults.Sum(x => x.Error * x.Weight);
 
             //Now we can get the total error
-            var RatingsResults = RatingsActions.AsParallel().Select(x => x());
             var RatingsWeights = RatingsResults.Sum(x => x.Weight);
             var RatingsTotals = RatingsResults.Sum(x => x.Error * x.Weight);
 

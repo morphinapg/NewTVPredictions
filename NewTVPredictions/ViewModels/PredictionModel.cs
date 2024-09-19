@@ -21,7 +21,7 @@ namespace NewTVPredictions.ViewModels
 
         //A reference to the parent network
         [DataMember]
-        Network Network;        
+        public Network Network;        
 
         public PredictionModel(Network network)
         {
@@ -36,7 +36,7 @@ namespace NewTVPredictions.ViewModels
             ///Model will be optimized to output values that match ratings/viewers range
 
             //Calculate statistics for all shows
-            var WeightedShows = GetWeightedShows();
+            var WeightedShows = Network.GetWeightedShows();
 
             var AllEpisodes = WeightedShows.Select(x => new StatsContainer(x.Show.Episodes, x.Weight));
 
@@ -304,7 +304,7 @@ namespace NewTVPredictions.ViewModels
             //This basically ensures that the average prediction of RatingsModel is in the correct range
 
             //We need to first generate a weighted selection of the shows
-            var WeightedShows = GetWeightedShows();
+            var WeightedShows = Network.GetWeightedShows();
 
             //Next, we need to check for errors in the RatingsModel
             var RatingsActions = GetRatingsActions(WeightedShows);
@@ -313,8 +313,11 @@ namespace NewTVPredictions.ViewModels
             var PredictionActions = GetPredictionActions(WeightedShows);
 
             //Now that we have the actions necessary, we need to calculate prediction accuracy:
-            var EpisodePairs = WeightedShows.Select(x => x.Show.Episodes).Distinct().Select(Total => Enumerable.Range(1, Total).Select(Current => new EpisodePair(Current, Total))).SelectMany(x => x);
-            SetAccuracyAndError(RatingsActions, PredictionActions, EpisodePairs);
+            var EpisodePairs = Network.GetEpisodePairs();
+            var RatingsResults = RatingsActions.AsParallel().Select(x => x());
+            var PredictionResults = PredictionActions.AsParallel().Select(x => x());
+            
+            SetAccuracyAndError(RatingsResults, PredictionResults, EpisodePairs);
         }
 
         /// <summary>
@@ -325,7 +328,7 @@ namespace NewTVPredictions.ViewModels
         public IEnumerable<Func<ErrorContainer>> GetRatingsActions(IEnumerable<WeightedShow>? WeightedShows = null)
         {
             if (WeightedShows is null)
-                WeightedShows = GetWeightedShows();
+                WeightedShows = Network.GetWeightedShows();
 
             //Now, we need to select all possible ratings values, and group them with the weight for that year
             var WeightedRatings = WeightedShows.Select(x => x.Show.Ratings.Select(y => new StatsContainer(Convert.ToDouble(y), x.Weight))).SelectMany(x => x).Distinct();
@@ -354,20 +357,9 @@ namespace NewTVPredictions.ViewModels
         public IEnumerable<Func<ShowErrorContainer>> GetPredictionActions(IEnumerable<WeightedShow>? WeightedShows = null)
         {
             if (WeightedShows is null)
-                WeightedShows = GetWeightedShows();
+                WeightedShows = Network.GetWeightedShows();
 
             return WeightedShows.Where(x => x.Show.Renewed || x.Show.Canceled).Select(x => Enumerable.Range(1, Math.Max(x.Show.Ratings.Count, x.Show.Viewers.Count)).Select(y => new Func<ShowErrorContainer>(() => GetWeightedShowError(x.Show, x.Weight, y)))).SelectMany(x => x);
-        }
-
-        /// <summary>
-        /// Generates a current list of shows weighted by year
-        /// </summary>
-        /// <returns>Enumerable of WeightedShow objects</returns>
-        IEnumerable<WeightedShow> GetWeightedShows()
-        {
-            var now = DateTime.Now;
-            double NextYear = now.Month < 9 ? now.Year : now.Year + 1;
-            return Network.Shows.Where(x => x.Year.HasValue).Select(x => new WeightedShow(x, 1 / (NextYear - x.Year!.Value)));
         }
 
         /// <summary>

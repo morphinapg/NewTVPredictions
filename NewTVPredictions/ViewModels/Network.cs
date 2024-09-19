@@ -290,6 +290,21 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        public IEnumerable<WeightedShow> GetWeightedShows()
+        {
+            var now = DateTime.Now;
+            double NextYear = now.Month < 9 ? now.Year : now.Year + 1;
+            return Shows.Where(x => x.Year.HasValue).Select(x => new WeightedShow(x, 1 / (NextYear - x.Year!.Value))).ToList();
+        }
 
+        public override int GetHashCode()
+        {
+            return Name.GetHashCode();
+        }
+
+        public IEnumerable<EpisodePair> GetEpisodePairs()
+        {
+            return Shows.Select(x => x.Episodes).Distinct().Select(Total => Enumerable.Range(1, Total).Select(Current => new EpisodePair(Current, Total))).SelectMany(x => x);
+        }
     }
 }
