@@ -19,9 +19,6 @@ namespace NewTVPredictions.ViewModels
         [DataMember]
         int InputSize;
 
-        [DataMember]
-        public bool IsMutated = false;
-
         /// <summary>
         /// Initialize Neuron with just InputSize
         /// </summary>
@@ -55,7 +52,6 @@ namespace NewTVPredictions.ViewModels
         public Neuron(Neuron x, Neuron y)                                         
         {
             var r = Random.Shared;
-            IsMutated = false;
             bias = Breed(x.bias, y.bias);
             outputbias = Breed(x.outputbias, y.outputbias);
 
@@ -126,26 +122,17 @@ namespace NewTVPredictions.ViewModels
                 if (i < InputSize)
                 {
                     if (r.NextDouble() < mutationrate)
-                    {
                         weights[i] += mutationintensity * (r.NextDouble() * 2 - 1);
-                        IsMutated = true;
-                    }
                 }                    
                 else if (i == InputSize)
                 {
                     if (r.NextDouble() < mutationrate)
-                    {
                         bias += mutationintensity * (r.NextDouble() * 2 - 1);
-                        IsMutated = true;
-                    }
                 }
                 else
                 {
                     if (r.NextDouble() < mutationrate)
-                    {
                         outputbias += mutationintensity * (r.NextDouble() * 2 - 1);
-                        IsMutated = true;
-                    }
                 }
             });            
         }

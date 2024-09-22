@@ -14,12 +14,18 @@ using ColorTextBlock.Avalonia;
 
 namespace NewTVPredictions.ViewModels
 {
+    /// <summary>
+    /// A television network, including all of the shows for all years
+    /// </summary>
     [DataContract (IsReference =true)]
-    public class Network : ViewModelBase                                                                                            //A television network, including all of the shows for all years
+    public class Network : ViewModelBase                                                                                            
     {
+        /// <summary>
+        /// The Name of the network
+        /// </summary>
         [DataMember]
         string _name ="";
-        public string Name                                                                                                          //The Name of the Network
+        public string Name                                                                                                          
         {
             get => _name;
             set
@@ -32,24 +38,32 @@ namespace NewTVPredictions.ViewModels
         [DataMember]
         ObservableCollection<Factor> _factors = new();
 
-        public ObservableCollection<Factor> Factors => _factors;                                                                    //A factor is a true/false property of a show that can affect renewal
+        /// <summary>
+        /// List of all of the shows on the network
+        /// </summary>
+        [DataMember]
+        public ObservableCollection<Show> Shows = new();
 
+        public Evolution? Evolution;
+
+        /// <summary>
+        /// A factor is a true/false property of a show that can affect renewal
+        /// </summary>
+        public ObservableCollection<Factor> Factors => _factors;                                                                    
+
+        /// <summary>
+        /// Default constructor
+        /// </summary>
         public Network()
         {
             Shows.CollectionChanged += Shows_CollectionChanged;
-        }        
-
-        public Network (Network n)
-        {
-            _name = n.Name;
-
-            Factors.Clear();
-            foreach (Factor factor in n.Factors)
-                Factors.Add(factor);
         }
 
         string _currentFactor = "";
-        public string CurrentFactor                                                                                                 //On the Add Network page, this is the current string typed into the "Add a Factor" textbox
+        /// <summary>
+        /// On the Add Network page, this is the current string typed into the "Add a Factor" textbox
+        /// </summary>
+        public string CurrentFactor                                                                                                 
         {
             get => _currentFactor;
             set
@@ -59,7 +73,8 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        public CommandHandler Add_Factor => new CommandHandler(AddFactor);                                                          //Add CurrentFactor to the Factors collection
+        //Add CurrentFactor to the Factors collection
+        public CommandHandler Add_Factor => new CommandHandler(AddFactor);                                                          
 
         void AddFactor()
         {
@@ -73,16 +88,17 @@ namespace NewTVPredictions.ViewModels
 
         public event EventHandler? FactorFocused;
 
-        public override string ToString()                                                                                           //Display the network name. Useful when debugging.
+        //Display the network name. Useful when debugging.
+        public override string ToString()                                                                                           
         {
             return Name;
-        }
-
-        [DataMember]
-        public ObservableCollection<Show> Shows = new();                                                                            //List of all of the shows on the network
+        }                                                                                   
 
         ObservableCollection<Show> _filteredShows = new();
-        public ObservableCollection<Show> FilteredShows                                                                             //This will display only the shows that exist as part of the current TV Season year
+        /// <summary>
+        /// This will display only the shows that exist as part of the current TV Season year
+        /// </summary>
+        public ObservableCollection<Show> FilteredShows                                                                             
         {
             get => _filteredShows;
             set
@@ -93,7 +109,10 @@ namespace NewTVPredictions.ViewModels
         }
 
         ObservableCollection<Show> _alphabeticalShows = new();
-        public ObservableCollection<Show> AlphabeticalShows                                                                         //An alphabetical version of FilteredShows
+        /// <summary>
+        /// An alphabetical version of FilteredShows
+        /// </summary>
+        public ObservableCollection<Show> AlphabeticalShows                                                                         
         {
             get => _alphabeticalShows;
             set
@@ -103,13 +122,17 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        private void Shows_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)                                    //This will need to run when a show is added to the Shows collection, in order to update the FilteredShows collection
+        //This will need to run when a show is added to the Shows collection, in order to update the FilteredShows collection
+        private void Shows_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)                                    
         {
             UpdateFilter();   
         }
 
         Show _currentShow = new();
-        public Show CurrentShow                                                                                                    //The currently selected show. Used with AddShow and ModifyShow views
+        /// <summary>
+        /// The currently selected show. Used with AddShow and ModifyShow views
+        /// </summary>
+        public Show CurrentShow                                                                                                    
         {
             get => _currentShow;
             set
@@ -122,7 +145,10 @@ namespace NewTVPredictions.ViewModels
 
         public CommandHandler ResetShow_Clicked => new CommandHandler(ResetShow);
 
-        public void ResetShow()                                                                                                     //After adding factors, make sure to reset them all to false
+        /// <summary>
+        /// After adding factors, make sure to reset them all to false
+        /// </summary>
+        public void ResetShow()                                                                                                     
         {
             CurrentShow = new();
             Parallel.ForEach(Factors, x => x.IsTrue = false);
@@ -132,6 +158,9 @@ namespace NewTVPredictions.ViewModels
         }
 
         Show? _currentModifyShow = null;
+        /// <summary>
+        /// Current show selected in the ModifyShows page
+        /// </summary>
         public Show? CurrentModifyShow
         {
             get => _currentModifyShow;
@@ -147,10 +176,13 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        public bool ModifyEnabled => CurrentModifyShow is not null;                                                                 //disable the ModifyShow panel if CurrentModifyShow is null
+        /// <summary>
+        /// disable the ModifyShow panel if CurrentModifyShow is null
+        /// </summary>
+        public bool ModifyEnabled => CurrentModifyShow is not null;
 
-
-        public CommandHandler Save_Modify => new CommandHandler(SaveModifyShow);                                                    //Save the current ModifyShow changes, replacing the original show in the list
+        //Save the current ModifyShow changes, replacing the original show in the list
+        public CommandHandler Save_Modify => new CommandHandler(SaveModifyShow);                                                    
         void SaveModifyShow()
         {
             if (CurrentModifyShow is not null)
@@ -167,9 +199,10 @@ namespace NewTVPredictions.ViewModels
             ResetShow();
         }
 
-        public CommandHandler AddShow_Clicked => new CommandHandler(Add_Show);                                                      
+        public CommandHandler AddShow_Clicked => new CommandHandler(Add_Show);
 
-        async void Add_Show()                                                                                                       //Add current show to Shows collection
+        //Add current show to Shows collection
+        async void Add_Show()                                                                                                       
         {
             if (CurrentShow is not null)
             {
@@ -203,7 +236,10 @@ namespace NewTVPredictions.ViewModels
         }
 
         int? _currentYear;
-        public int? CurrentYear                                                                                                     //Update the FilteredShows when the current year changes
+        /// <summary>
+        /// Update the FilteredShows when the current year changes
+        /// </summary>
+        public int? CurrentYear                                                                                                     
         {
             get => _currentYear;
             set
@@ -213,7 +249,8 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        async void UpdateFilter()                                                                                                   //Update FilteredShows and AlphabeticalShows by the current year
+        //Update FilteredShows and AlphabeticalShows by the current year
+        async void UpdateFilter()                                                                                                   
         {
             var tmpShows = CurrentYear is null ? Shows.AsParallel() : Shows.AsParallel().Where(x => x.Year == CurrentYear);
             var alphabetical = tmpShows.OrderBy(x => x.Name).ThenBy(x => x.Season);
@@ -225,9 +262,12 @@ namespace NewTVPredictions.ViewModels
             });
         }
 
-        Queue<Factor> SubscribedFactors = new();                                                                                    
+        Queue<Factor> SubscribedFactors = new();
 
-        public void SubscribeToFactors()                                                                                            //When searching for shows by factor, factor toggle events must be subscribed. This keeps track of them.
+        /// <summary>
+        /// When searching for shows by factor, factor toggle events must be subscribed. This keeps track of them.
+        /// </summary>
+        public void SubscribeToFactors()                                                                                            
         {
             while (SubscribedFactors.Any())
             {
@@ -244,7 +284,10 @@ namespace NewTVPredictions.ViewModels
             ShowsFilteredByFactor.Clear();
         }
 
-        public void Factor_Toggled(object? sender, EventArgs e)                                                                    //When factors are toggled, update ShowsFilteredByFactor
+        /// <summary>
+        /// When factors are toggled, update ShowsFilteredByFactor
+        /// </summary>
+        public void Factor_Toggled(object? sender, EventArgs e)                                                                    
         {
             var SelectedFactors = Factors.Where(x => x.IsTrue);
 
@@ -267,7 +310,10 @@ namespace NewTVPredictions.ViewModels
         }
 
         ObservableCollection<string> _showsFilteredByFactor = new();
-        public ObservableCollection<string> ShowsFilteredByFactor                                                                   //List of shows to display when searching for shows by factor
+        /// <summary>
+        /// List of shows to display when searching for shows by factor
+        /// </summary>
+        public ObservableCollection<string> ShowsFilteredByFactor                                                                   
         {
             get => _showsFilteredByFactor;
             set
@@ -278,7 +324,10 @@ namespace NewTVPredictions.ViewModels
         }
 
         bool _showAllYears;
-        public bool ShowAllYears                                                                                                    //Allows the user to display all years when searching for shows by factor
+        /// <summary>
+        /// Allows the user to display all years when searching for shows by factor
+        /// </summary>
+        public bool ShowAllYears                                                                                                    
         {
             get => _showAllYears;
             set
@@ -290,6 +339,9 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        /// <summary>
+        /// Get all shows, weighted by year
+        /// </summary>
         public IEnumerable<WeightedShow> GetWeightedShows()
         {
             var now = DateTime.Now;
@@ -302,9 +354,14 @@ namespace NewTVPredictions.ViewModels
             return Name.GetHashCode();
         }
 
+        /// <summary>
+        /// Get all combinations of Current Episode and Total Episodes
+        /// </summary>
         public IEnumerable<EpisodePair> GetEpisodePairs()
         {
             return Shows.Select(x => x.Episodes).Distinct().Select(Total => Enumerable.Range(1, Total).Select(Current => new EpisodePair(Current, Total))).SelectMany(x => x);
         }
+
+        
     }
 }

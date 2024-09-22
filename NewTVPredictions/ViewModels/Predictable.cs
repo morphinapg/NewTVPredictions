@@ -5,6 +5,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using MathNet.Numerics.Distributions;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -44,6 +45,11 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        //A reference to the parent network
+        [DataMember]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        public Network Network;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         /// <summary>
         /// Calculate the Margin of Error for these prediction results
@@ -197,6 +203,22 @@ namespace NewTVPredictions.ViewModels
             Error = AllTotals / AllWeights;
 
             CalculateMarginOfError(PredictionResults, EpisodePairs);
+        }
+
+        /// <summary>
+        /// Get the renewal odds of a show, given the Performance and Threshold.
+        /// MarginOfError needs to have been calculated already
+        /// </summary>
+        /// <param name="outputs">Output of GetPerformanceAndThreshold</param>
+        /// <returns>Percentage odds of renewal</returns>
+        public double GetOdds(double[] outputs, EpisodePair Episodes)
+        {
+            var ShowPerformance = outputs[0];
+            var ShowThreshold = outputs[1];
+
+            var Normal = new Normal(ShowThreshold, MarginOfError[Episodes]);
+
+            return Normal.CumulativeDistribution(ShowPerformance);
         }
     }   
 }

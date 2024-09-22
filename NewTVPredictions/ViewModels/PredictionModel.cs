@@ -1,5 +1,4 @@
 ﻿using Avalonia.Media.Imaging;
-using MathNet.Numerics.Distributions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,11 +16,9 @@ namespace NewTVPredictions.ViewModels
     {
         //The neural networks core to the function of the PredictionModel
         [DataMember]
-        NeuralNetwork RatingsModel, RenewalModel;           
+        NeuralNetwork RatingsModel, RenewalModel;
 
         //A reference to the parent network
-        [DataMember]
-        public Network Network;        
 
         public PredictionModel(Network network)
         {
@@ -278,23 +275,7 @@ namespace NewTVPredictions.ViewModels
             var outputs = GetPerformanceAndThreshold(Show);
             var Episodes = new EpisodePair(Math.Min(Show.Ratings.Count, Show.Viewers.Count), Show.Episodes);
             return GetOdds(outputs, Episodes);
-        }
-
-        /// <summary>
-        /// Get the renewal odds of a show, given the Performance and Threshold.
-        /// MarginOfError needs to have been calculated already
-        /// </summary>
-        /// <param name="outputs">Output of GetPerformanceAndThreshold</param>
-        /// <returns>Percentage odds of renewal</returns>
-        public double GetOdds(double[] outputs, EpisodePair Episodes)
-        {
-            var ShowPerformance = outputs[0];
-            var ShowThreshold = outputs[1];
-
-            var Normal = new Normal(ShowThreshold, MarginOfError[Episodes]);
-
-            return Normal.CumulativeDistribution(ShowPerformance);
-        }
+        }        
 
         public void TestAccuracy()
         {
@@ -372,6 +353,21 @@ namespace NewTVPredictions.ViewModels
         /// <returns>A StatsContainer with the Error and Weight</returns>
         ErrorContainer GetWeightedRatingsError_Episodes(int Episodes, double Rating, double Weight, int InputType)
         {
+            var output = GetThresholdByRating(Episodes, Rating, InputType);
+            var Error = Math.Abs(output - Rating);
+
+            return new ErrorContainer(this, Error, Weight);
+        }
+
+        /// <summary>
+        /// Get the predicted threshold, given an expected Rating value, and number of episodes
+        /// </summary>
+        /// <param name="Episodes">Number of episodes to test</param>
+        /// <param name="Rating">Expected rating</param>
+        /// <param name="InputType">0 = Ratings, 1 = Viewers</param>
+        /// <returns></returns>
+        public double GetThresholdByRating(int Episodes, double Rating, int InputType)
+        {
             var NumberOfInputs = Episodes + 1;
 
             var inputs = new double[NumberOfInputs];
@@ -380,10 +376,7 @@ namespace NewTVPredictions.ViewModels
             for (int i = 0; i < Episodes; i++)
                 inputs[i + 1] = Rating;
 
-            var output = RatingsModel.GetOutput(inputs, InputType)[0];
-            var Error = Math.Abs(output - Rating);
-
-            return new ErrorContainer(this, Error, Weight);
+            return RatingsModel.GetOutput(inputs, InputType)[0];
         }
 
         /// <summary>
@@ -582,9 +575,6 @@ namespace NewTVPredictions.ViewModels
             else
                 foreach (var action in MutationActions)
                     action();
-
-            RatingsModel.CheckIfNeuronsMutated();
-            RenewalModel.CheckIfNeuronsMutated();
         }
 
         /// <summary>
