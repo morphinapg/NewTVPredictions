@@ -10,6 +10,7 @@ using System.Collections;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
+using Avalonia.Media;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -18,7 +19,10 @@ namespace NewTVPredictions.ViewModels
     {
         [DataMember]
         Network? _parent;
-        public Network? Parent                                              //Reference to the parent Network, should be set when creating AddShow view
+        /// <summary>
+        /// Reference to the parent Network, should be set when creating AddShow view
+        /// </summary>
+        public Network? Parent                                              
         {
             get => _parent;
             set
@@ -30,7 +34,10 @@ namespace NewTVPredictions.ViewModels
 
         [DataMember]
         string _name = "";
-        public string Name                                                  //Name of the show
+        /// <summary>
+        /// Name of the show
+        /// </summary>
+        public string Name                                                  
         {
             get => _name;
             set
@@ -42,7 +49,10 @@ namespace NewTVPredictions.ViewModels
 
         [DataMember]
         int _season = 1;
-        public int Season                                                   //Which season the show is in for this year
+        /// <summary>
+        /// Which season the show is in for this year
+        /// </summary>
+        public int Season                                                   
         {
             get => _season;
             set
@@ -55,8 +65,12 @@ namespace NewTVPredictions.ViewModels
 
         [DataMember]
         int _previousEpisodes;
-        public int PreviousEpisodes                                         //How many episodes of the show aired before the current season
-        {                                                                   //Useful for the model to determine syndication status
+        /// <summary>
+        /// How many episodes of the show aired before the current season
+        /// Useful for the model to determine syndication status
+        /// </summary>
+        public int PreviousEpisodes                                         
+        {                                                                   
             get => _previousEpisodes;
             set
             {
@@ -69,7 +83,10 @@ namespace NewTVPredictions.ViewModels
 
         [DataMember]
         int _episodes = 13;
-        public int Episodes                                                 //How many episodes the current season will air (or likely air if unknown)
+        /// <summary>
+        /// How many episodes the current season will air (or likely air if unknown)
+        /// </summary>
+        public int Episodes                                                 
         {
             get => _episodes;
             set
@@ -81,8 +98,12 @@ namespace NewTVPredictions.ViewModels
 
         [DataMember]
         ObservableCollection<Factor> _factors = new();
-        public ObservableCollection<Factor> Factors                         //The list of factors this show has. 
-        {                                                                   //Will need to be updated if the Parent network factors change.
+        /// <summary>
+        /// The list of factors this show has. 
+        /// Will need to be updated if the Parent network factors change.
+        /// </summary>
+        public ObservableCollection<Factor> Factors                         
+        {                                                                   
             get => _factors;
             set
             {
@@ -93,7 +114,10 @@ namespace NewTVPredictions.ViewModels
 
         [DataMember]
         bool _halfHour;
-        public bool HalfHour                                                //If a show is 30 minutes long
+        /// <summary>
+        /// If a show is 30 minutes long
+        /// </summary>
+        public bool HalfHour                                                
         {
             get => _halfHour;
             set
@@ -111,7 +135,10 @@ namespace NewTVPredictions.ViewModels
 
         [DataMember]
         int? _year;
-        public int? Year                                                    //The year this TV season aired
+        /// <summary>
+        /// The year this TV season aired
+        /// </summary>
+        public int? Year                                                    
         {
             get => _year;
             set
@@ -121,21 +148,159 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        /// <summary>
+        /// Ratings/viewers for each episode that has currently aired
+        /// </summary>
         [DataMember]
-        public List<decimal?>
+        public List<double?>
             Ratings = new(),
             Viewers = new();
 
         List<RatingsInfo> _ratingsContainer = new();
         public  List<RatingsInfo> RatingsContainer => _ratingsContainer;
 
-        public Show()                                                       //Initialize RatingsInfo with every new Show
+        /// <summary>
+        /// Initialize RatingsInfo with every new Show
+        /// </summary>
+        public Show()                                                       
         {
             RatingsContainer.Add(new RatingsInfo(Ratings, "Ratings"));
             RatingsContainer.Add(new RatingsInfo(Viewers, "Viewers"));
         }
 
-        public override string ToString()                                   //ToString should display the Show name
+        double? _currentRating, _currentViewers, _currentPerformance, _predictedOdds;
+
+        /// <summary>
+        /// The previous value from last week's predictions
+        /// </summary>
+        public double OldRating, OldViewer, OldPerformance, OldOdds;
+
+        /// <summary>
+        /// The Projected Rating for the entire season
+        /// based on existing ratings
+        /// </summary>
+        public double? CurrentRating
+        {
+            get => _currentRating;
+            set
+            {
+                _currentRating = value;
+                OnPropertyChanged(nameof(CurrentRating));
+            }
+        }
+
+        /// <summary>
+        /// The projected number of viewers for the entire season
+        /// based on existing viewers
+        /// </summary>
+        public double? CurrentViewers
+        {
+            get => _currentViewers;
+            set
+            {
+                _currentViewers = value;
+                OnPropertyChanged(nameof(CurrentViewers));
+            }
+        }
+
+        /// <summary>
+        /// The projected number of viewers for the entire season
+        /// based on existing viewers
+        /// Formatted to describe them as millions (M) or thousands (K) of viewers
+        /// </summary>
+        public string? CurrentViewersString
+        {
+            get
+            {
+                if (_currentViewers is null)
+                    return null;
+                else if (_currentViewers >= 1)
+                    return _currentViewers + "M";
+                else
+                    return _currentViewers * 1000 + "K";
+            }
+        }
+
+        /// <summary>
+        /// Represents the current performance rating of the show, relative to the renewal threshold.
+        /// 50 = ratings/viewers are half of what they need to be for renewal.
+        /// 100 = right on the renewal threshold.
+        /// 200 = ratings/viewers are twice what they need to be for renewal.
+        /// </summary>
+        public double? CurrentPerformance
+        {
+            get => _currentPerformance;
+            set
+            {
+                _currentPerformance = value;
+                OnPropertyChanged(nameof(CurrentPerformance));
+            }
+        }
+
+        /// <summary>
+        /// The predicted odds of renewal. Value between 0-100%.
+        /// 50% means right on the renewal threshold.
+        /// </summary>
+        public double? PredictedOdds
+        {
+            get => _predictedOdds;
+            set
+            {
+                _predictedOdds = value;
+                OnPropertyChanged(nameof(PredictedOdds));
+            }
+        }
+
+        /// <summary>
+        /// A text string representing either the current renewal status of the show,
+        /// or the prediction category
+        /// </summary>
+        public string? PredictionStatus
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(RenewalStatus))
+                {
+                    if (PredictedOdds < 0.2)
+                        return "Certain Cancellation";
+                    else if (PredictedOdds < 0.4)
+                        return "Likely Cancellation";
+                    else if (PredictedOdds < 0.5)
+                        return "Leaning Towards Cancellation";
+                    else if (PredictedOdds < 0.6)
+                        return "Learning Towards Renewal";
+                    else if (PredictedOdds < 0.8)
+                        return "Likely Renewal";
+                    else
+                        return "Certain Renewal";
+                }
+                else
+                    return RenewalStatus;
+            }
+        }
+
+        /// <summary>
+        /// Color to be used with PredictionStatus in the UI
+        /// </summary>
+        public Color RenewalColor
+        {
+            get
+            {
+                if (Renewed)
+                    return Colors.Green;
+                else if (Canceled)
+                    return Colors.Red;
+                else if (string.IsNullOrEmpty(RenewalStatus))
+                    return Colors.White;
+                else
+                    return Colors.Gray;
+            }
+        }
+
+        /// <summary>
+        /// ToString should display the Show name
+        /// </summary>
+        public override string ToString()                                   
         {
             if (Parent is not null && Parent.Shows.Where(x => x.Name == Name && x.Year == Year).Count() > 1)
                 return Name + " (Season " + Season + ")";
@@ -143,7 +308,10 @@ namespace NewTVPredictions.ViewModels
             return Name;
         }
 
-        public Show(Show other)                                             //Create a clone of another show
+        /// <summary>
+        /// Create a clone of another show
+        /// </summary>
+        public Show(Show other)                                             
         {
             Parent = other.Parent;
             Name = other.Name;
@@ -169,7 +337,10 @@ namespace NewTVPredictions.ViewModels
         }
 
         bool _canceled;
-        public bool Canceled                                                //Sets show as being cenceled
+        /// <summary>
+        /// Sets show as being cenceled
+        /// </summary>
+        public bool Canceled                                                
         {
             get => _canceled;
             set
@@ -181,7 +352,10 @@ namespace NewTVPredictions.ViewModels
         }
 
         bool _renewed;
-        public bool Renewed                                                 //sets show as being renewed
+        /// <summary>
+        /// sets show as being renewed
+        /// </summary>
+        public bool Renewed                                                 
         {
             get => _renewed;
             set
@@ -192,10 +366,13 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        //if both Renewed and Canceled are selected, then the show has been renewed for the final season
+        
 
         string? _renewalStatus;
-        public string? RenewalStatus                                         //Either default or custom renewal status string
+        /// <summary>
+        /// Either default or custom renewal status string
+        /// </summary>
+        public string? RenewalStatus                                         
         {
             get => _renewalStatus is null ? DefaultString : _renewalStatus;
             set
@@ -208,7 +385,11 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        string DefaultString                                                //The default RenewalStatus if one has not been entered yet.
+        /// <summary>
+        /// The default RenewalStatus if one has not been entered yet.
+        /// if both Renewed and Canceled are selected, then the show has been renewed for the final season
+        /// </summary>
+        string DefaultString                                                
         {
             get
             {
@@ -225,7 +406,12 @@ namespace NewTVPredictions.ViewModels
 
         string? MissingProperty;
 
-        public static bool operator ==(Show x, Show y)                      //Equivalency check, mainly used to verify the copy constructor handles every property
+        /// <summary>
+        /// Equivalency check, mainly used to verify the copy constructor handles every property
+        /// </summary>
+        /// <param name="x">First Show</param>
+        /// <param name="y">Second Show</param>
+        public static bool operator ==(Show x, Show y)                      
         {
             if (x is null && y is null) return true;
             if (x is null || y is null) return false;
@@ -289,5 +475,10 @@ namespace NewTVPredictions.ViewModels
         {
             return new { Name, Season, Year}.GetHashCode();
         }
+
+        /// <summary>
+        /// The current number of episodes that have aired
+        /// </summary>
+        public int CurrentEpisodes => Math.Max(Ratings.Count, Viewers.Count);
     }
 }

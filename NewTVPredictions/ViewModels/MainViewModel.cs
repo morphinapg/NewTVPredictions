@@ -18,7 +18,8 @@ namespace NewTVPredictions.ViewModels;
 [DataContract]
 public partial class MainViewModel : ViewModelBase
 {
-    UserControl _activePage = new()                                                     //This UserControl will hold whatever Page is active in the main view
+    
+    UserControl _activePage = new()                                                     
     {
         Transitions = new Transitions
         {
@@ -29,6 +30,9 @@ public partial class MainViewModel : ViewModelBase
             }
         }
     };
+    /// <summary>
+    /// This UserControl will hold whatever Page is active in the main view
+    /// </summary>
     public UserControl ActivePage => _activePage;
 
     UserControl _subPage = new()
@@ -42,9 +46,18 @@ public partial class MainViewModel : ViewModelBase
             }
         }
     };
+
+    /// <summary>
+    /// This UserControl will hold whatever page is being displayed on the current NetworkHome page
+    /// </summary>
     public UserControl SubPage => _subPage;
 
-    public async Task ReplacePage(UserControl TargetPage, UserControl NewPage)          //Changes the active page, using an opacity transition
+    /// <summary>
+    /// Changes the active page, using an opacity transition
+    /// </summary>
+    /// <param name="TargetPage">The UserControl to change</param>
+    /// <param name="NewPage">the new UserControl</param>
+    public async Task ReplacePage(UserControl TargetPage, UserControl NewPage)          
     {
         if (TargetPage is not null)
         {
@@ -59,7 +72,10 @@ public partial class MainViewModel : ViewModelBase
     }
 
     Network _currentNetwork = new();
-    public Network CurrentNetwork                                                       //DataContext of the current network displayed on the AddNetwork page
+    /// <summary>
+    /// DataContext of the current network displayed on the AddNetwork page
+    /// </summary>
+    public Network CurrentNetwork                                                       
     {
         get => _currentNetwork;
         set
@@ -69,7 +85,10 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    public CommandHandler Add_Network => new CommandHandler(AddNetwork_Clicked);        //Activates the Add Network button, navigating to the Add Network Page
+    /// <summary>
+    /// //Activates the Add Network button, navigating to the Add Network Page
+    /// </summary>
+    public CommandHandler Add_Network => new CommandHandler(AddNetwork_Clicked);        
     async void AddNetwork_Clicked()
     {
         CurrentNetwork = new();
@@ -80,9 +99,21 @@ public partial class MainViewModel : ViewModelBase
 
     [DataMember]
     ObservableCollection<Network> _networks = new();
-    public ObservableCollection<Network> Networks => _networks;                         //Collection of all networks stored in the database
+    /// <summary>
+    /// Collection of all networks stored in the database
+    /// </summary>
+    public ObservableCollection<Network> Networks => _networks;
 
-    public CommandHandler Save_Network => new CommandHandler(SaveNetwork_Clicked);      //Saves the current network to the Networks collection
+    ObservableCollection<Evolution> _evolutionList = new();
+    /// <summary>
+    /// Collection of all Evolution objects
+    /// </summary>
+    public ObservableCollection<Evolution> EvolutionList => _evolutionList;
+
+    /// <summary>
+    /// Saves the current network to the Networks collection
+    /// </summary>
+    public CommandHandler Save_Network => new CommandHandler(SaveNetwork_Clicked);      
     async void SaveNetwork_Clicked()
     {
         if (CurrentNetwork is null)
@@ -98,7 +129,10 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    public CommandHandler Clear_Network => new CommandHandler(ClearNetwork_Clicked);    //Clears the currently displayed network to default empty network
+    /// <summary>
+    /// Clears the currently displayed network to default empty network
+    /// </summary>
+    public CommandHandler Clear_Network => new CommandHandler(ClearNetwork_Clicked);    
 
     void ClearNetwork_Clicked()
     {
@@ -106,7 +140,10 @@ public partial class MainViewModel : ViewModelBase
     }
 
     Network? _selectedNetwork;
-    public Network? SelectedNetwork                                                     //Property to track when the SelectedItem of the Networks ItemsList changes, in order to navigate to the NetworkHome page for that Network
+    /// <summary>
+    /// Property to track when the SelectedItem of the Networks ItemsList changes, in order to navigate to the NetworkHome page for that Network
+    /// </summary>
+    public Network? SelectedNetwork                                                     
     {
         get => _selectedNetwork;
         set
@@ -120,7 +157,10 @@ public partial class MainViewModel : ViewModelBase
 
     NetworkHome? CurrentNetworkHome;
 
-    async void SelectNetwork()                                                          //Switch the displayed page to the NetworkHome page for the currently selected network
+    /// <summary>
+    /// Switch the displayed page to the NetworkHome page for the currently selected network
+    /// </summary>
+    async void SelectNetwork()                                                          
     {
         if (SelectedNetwork is not null)
         {
@@ -143,8 +183,10 @@ public partial class MainViewModel : ViewModelBase
 
     AddShow? CurrentAddShow;
 
-
-    const int                                                                           //constants defining the tab order
+    /// <summary>
+    /// constants defining the tab order
+    /// </summary>
+    const int                                                                           
         PREDICTIONS = 0,
         ADD_SHOW = 1,
         EDIT_RATINGS = 2,
@@ -158,7 +200,10 @@ public partial class MainViewModel : ViewModelBase
 
 
     int _selectedTabIndex = PREDICTIONS;
-    public int SelectedTabIndex                                                         //Selected tab on Network Home page
+    /// <summary>
+    /// Selected tab on Network Home page
+    /// </summary>
+    public int SelectedTabIndex                                                        
     {
         get => _selectedTabIndex;
         set
@@ -175,7 +220,10 @@ public partial class MainViewModel : ViewModelBase
     ModifyShow? CurrentModifyShow;
     ShowsByFactor? CurrentShowsByFactor;
 
-    async void SwitchTab()                                                              //Switch to a tab on the NetworkHome page
+    /// <summary>
+    /// Switch to a tab on the NetworkHome page
+    /// </summary>
+    async void SwitchTab()                                                              
     {
 
         switch (SelectedTabIndex)
@@ -231,7 +279,10 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    int CurrentTVSeason                                                                 //returns the current TV season starting year (September through August)
+    /// <summary>
+    /// returns the current TV season starting year (September through August)
+    /// </summary>
+    int CurrentTVSeason                                                                 
     {
         get
         {
@@ -244,7 +295,10 @@ public partial class MainViewModel : ViewModelBase
     }
 
     int? _currentYear;
-    public int? CurrentYear                                                             //The currently set TV season
+    /// <summary>
+    /// The currently set TV season
+    /// </summary>
+    public int? CurrentYear                                                             
     {
         get => _currentYear is null ? CurrentTVSeason : _currentYear;
         set
@@ -257,7 +311,10 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    public DateTimeOffset? SelectedYear                                                 //Get and set the current TV Season from DatePicker
+    /// <summary>
+    /// Get and set the current TV Season from DatePicker
+    /// </summary>
+    public DateTimeOffset? SelectedYear                                                 
     {
         get => CurrentYear.HasValue ? new DateTimeOffset(new DateTime(CurrentYear.Value, 1, 1), TimeSpan.Zero) : null;
         set
@@ -272,6 +329,9 @@ public partial class MainViewModel : ViewModelBase
     }
 
     bool _importVisible = true;
+    /// <summary>
+    /// Whether the import button is visible or not
+    /// </summary>
     public bool ImportVisible
     {
         get => _importVisible;
@@ -282,8 +342,11 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Import Network and Show data from old Database (this code will be removed in the future)
+    /// </summary>
     public CommandHandler Import_Database => new CommandHandler(ImportData);
-    async void ImportData()                                                                   //Import Network and Show data from old Database (this code will be removed in the future)
+    async void ImportData()                                                                   
     {
         var TopLevel = CurrentApp.TopLevel;
 
@@ -343,9 +406,9 @@ public partial class MainViewModel : ViewModelBase
                                 NewShow.HalfHour = s.Halfhour;
                                 NewShow.Year = s.year;
                                 foreach (var d in s.ratings)
-                                    NewShow.Ratings.Add((decimal)d);
+                                    NewShow.Ratings.Add(d);
                                 foreach (var d in s.viewers)
-                                    NewShow.Viewers.Add((decimal)d);
+                                    NewShow.Viewers.Add(d);
 
                                 NewShow.Canceled = s.Canceled;
                                 NewShow.Renewed = s.Renewed;
@@ -362,10 +425,32 @@ public partial class MainViewModel : ViewModelBase
         }
 
         if (Networks.Any())
+        {
             ImportVisible = false;
+
+            if (EvolutionList.Any())
+                EvolutionList.Clear();
+
+            
+            var WeightedShows = new Dictionary<Network, IEnumerable<WeightedShow>>();
+            foreach (var network in Networks)
+            {
+                EvolutionList.Add(new Evolution(network));
+                WeightedShows[network] = network.GetWeightedShows();
+            }
+
+            Parallel.ForEach(EvolutionList.Select(x => x.TopModel), x => x.TestAccuracy());
+            Parallel.ForEach(EvolutionList, x => x.UpdateAccuracy());
+        }            
     }
 
-    async Task WriteObjectAsync<T>(string FileName, T item)                                 //Write an object to file
+    /// <summary>
+    /// Write an object to file
+    /// </summary>
+    /// <typeparam name="T">Type of object to write</typeparam>
+    /// <param name="FileName">File Name</param>
+    /// <param name="item">The object to write</param>
+    async Task WriteObjectAsync<T>(string FileName, T item)                                 
     {
         await Task.Run(() =>
         {
@@ -376,7 +461,12 @@ public partial class MainViewModel : ViewModelBase
         });
     }
 
-    async Task<T?> ReadObjectAsync<T>(string FileName)                                      //Save an object to file
+    /// <summary>
+    /// Save an object to file
+    /// </summary>
+    /// <typeparam name="T">Type of object to save</typeparam>
+    /// <param name="FileName">File name</param>
+    async Task<T?> ReadObjectAsync<T>(string FileName)                                      
     {
         var item = await Task.Run(() =>
         {
@@ -393,7 +483,10 @@ public partial class MainViewModel : ViewModelBase
 
     HomePage CurrentHome = new();
 
-    public CommandHandler Home_Click => new CommandHandler(GoHome);                         //Navigate to Home Page
+    /// <summary>
+    /// Navigate to Home Page
+    /// </summary>
+    public CommandHandler Home_Click => new CommandHandler(GoHome);                         
     async void GoHome()
     {
         if (ActivePage.Content is not HomePage)
@@ -402,7 +495,10 @@ public partial class MainViewModel : ViewModelBase
         SelectedNetwork = null;
     }
 
-    public MainViewModel()                                                                  //Set Active Page to Home Page when loaded
+    /// <summary>
+    /// Set Active Page to Home Page when loaded
+    /// </summary>
+    public MainViewModel()                                                                  
     {
         ActivePage.Content = CurrentHome;
     }

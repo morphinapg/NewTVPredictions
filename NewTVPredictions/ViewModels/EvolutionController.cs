@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Avalonia.Threading;
+using MsBox.Avalonia;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,68 +12,52 @@ namespace NewTVPredictions.ViewModels
     internal class EvolutionController
     {
 
-        public ParallelQuery<Evolution> AllNetworks;
-        public ConcurrentDictionary<Evolution, IEnumerable<WeightedShow>> WeightedShows = new();
+        public List<Evolution> AllNetworks;
+        public ConcurrentDictionary<Network, IEnumerable<WeightedShow>> WeightedShows = new();
         public ConcurrentDictionary<Predictable, IEnumerable<EpisodePair>> EpisodePairs = new();
+        public bool UpdateAccuacy = true;
 
         public EvolutionController(List<Evolution> allNetworks)
         {
-            AllNetworks = allNetworks.AsParallel();
+            AllNetworks = allNetworks;
             Parallel.ForEach(AllNetworks, x =>
             {
-                WeightedShows[x] = x.GetWeightedShows();
-                EpisodePairs[x] = x.Network.GetEpisodePairs();
+                WeightedShows[x.Network] = x.GetWeightedShows();
+                EpisodePairs[x] = x.Network.GetEpisodePairs().AsParallel();
             });
         }
 
         public void NextGeneration()
         {
-            AllNetworks.ForAll(x => x.TopModelChanged = false);
-
-
             // STEP 1 - ACCURACY TESTING //
             //First, we need to test every PredictionModel in every Evolution model for accuracy
-
-            //The first step to do that is to run every action needed to test the RatingsModel of every PredictionModel in parallel
-            var RatingsResults = new ConcurrentDictionary<Predictable, IEnumerable<ErrorContainer>>();
-
-            AllNetworks.Select(x => x.GetRatingsActions(WeightedShows[x])).SelectMany(x => x).Select(x => x())
-            .GroupBy(x => x.Model).ForAll(x => RatingsResults[x.Key] = x.AsEnumerable());
-
-            //Next, run all actions needed to test the RenewalModel of every PredictionModel
-            var PredictionResults = new ConcurrentDictionary<Predictable, IEnumerable<ShowErrorContainer>>();
-
-            AllNetworks.Select(x => x.GetPredictionActions(WeightedShows[x])).SelectMany(x => x).Select(x => x())
-            .GroupBy(x => x.Model).ForAll(x => PredictionResults[x.Key] = x.AsEnumerable());
-
-            //Get all PredictionModel objects, and then run the code that sets the accuracy and error for each model
-            RatingsResults.AsParallel().Select(x => x.Key).ForAll(x => x.SetAccuracyAndError(RatingsResults[x], PredictionResults[x], EpisodePairs[x]));
+            Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x), x => x.TestAccuracy(WeightedShows[x.Network]));
+            
 
             // STEP 2 - SORTING //
-            AllNetworks.Select(x => x.GetSortActions()).SelectMany(x => x).ForAll(x => x());
+            Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees), x => x.Sort());
 
             // STEP 3 - UPDATE TOP MODELS //
-            AllNetworks.Select(x => x.UpdateModelActions()).SelectMany(x => x).ForAll(x => x());
+            Parallel.ForEach(AllNetworks.Select(x => Enumerable.Range(0, Evolution.NumberOfTrees).Select(y => new { Evolution = x, FamilyTree = y })).SelectMany(x => x), x => x.Evolution.UpdateTopModel(x.FamilyTree));
 
             // STEP 4 - BREEDING //
-            AllNetworks.Select(x => x.GetBreedingActions()).SelectMany(x => x).ForAll(x => x());
+            var LastGeneration = new ConcurrentDictionary<Evolution, List<PredictionModel>[]>();
+            var Peak = new ConcurrentDictionary<Evolution, double>();
+            Parallel.ForEach(AllNetworks, x => 
+            {
+                LastGeneration[x] = x.GetLastGeneration();
+                Peak[x] = x.GetPeak();
+            });
+
+            Parallel.ForEach(AllNetworks.Select(z => Enumerable.Range(0, Evolution.NumberOfTrees).Select(x => Enumerable.Range(0, Evolution.NumberOfModels).Select(y => new {Evolution = z, x, y }))).SelectMany(x => x).SelectMany(x => x), model => model.Evolution.Breed(model.x, model.y, LastGeneration[model.Evolution], Peak[model.Evolution]));
 
             // STEP 5 - MUTATION //
-            AllNetworks.Select(x => x.GetMutationActions()).SelectMany(x => x).ForAll(x => x());
+            Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x), x => x.MutateModel());
 
             // STEP 6 - UPDATE EVOLUTION ACCURACY, IF TOP MODELS CHANGED //
-            var Changed = AllNetworks.Where(x => x.TopModelChanged);
+            //these steps should only run after 100ms has passed, to avoid updating the UI too often
 
-            Changed.Select(x => x.TopRatingsActions(WeightedShows[x])).SelectMany(x => x).Select(x => x())
-                .GroupBy(x => x.Model).ForAll(x => RatingsResults[x.Key] = x.AsEnumerable());
-
-            Changed.Select(x => x.TopPredictionActions(WeightedShows[x])).SelectMany(x => x).Select(x => x())
-                .GroupBy(x => x.Model).ForAll(x => PredictionResults[x.Key] = x.AsEnumerable());
-
-            Changed.ForAll(x => x.SetAccuracyAndError(RatingsResults[x], PredictionResults[x], EpisodePairs[x]));
-
-            // STEP 7 - UPDATE NETWORK EVOLUTION IF MODELS HAVE CHANGED
-            Changed.ForAll(x => x.Network.Evolution = x);
+            Parallel.ForEach(AllNetworks.Where(x => x.TopModelChanged), x => x.UpdateAccuracy());
         }
     }
 }

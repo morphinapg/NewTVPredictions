@@ -87,7 +87,7 @@ namespace NewTVPredictions.ViewModels
         {
             double total = 0;
 
-            for (int i = 0; i < InputSize; i++)
+            for (int i = 0; i < inputs.Length; i++)
                 total += inputs[i] * weights[i];
 
             total += bias;
@@ -102,39 +102,17 @@ namespace NewTVPredictions.ViewModels
         /// <param name="mutationintensity">The mutation intensity</param>
         public void Mutate(double mutationrate, double mutationintensity)                   
         {
-            var MutationActions = GetMutationActions(mutationrate, mutationintensity);
-
-            Parallel.ForEach(MutationActions, x => x());
-        }
-
-        /// <summary>
-        /// Retrieve the actions necessary to mutate the model
-        /// </summary>
-        /// <param name="mutationrate">The mutation rate</param>
-        /// <param name="mutationintensity">The mutation intensity</param>
-        /// <returns>An IEnumerable with the actions necessary to mutate the model</returns>
-        public IEnumerable<Action> GetMutationActions(double mutationrate, double mutationintensity)
-        {
             var r = Random.Shared;
 
-            return Enumerable.Range(0, InputSize + 2).Select<int, Action>(i => () =>
-            {
-                if (i < InputSize)
-                {
-                    if (r.NextDouble() < mutationrate)
-                        weights[i] += mutationintensity * (r.NextDouble() * 2 - 1);
-                }                    
-                else if (i == InputSize)
-                {
-                    if (r.NextDouble() < mutationrate)
-                        bias += mutationintensity * (r.NextDouble() * 2 - 1);
-                }
-                else
-                {
-                    if (r.NextDouble() < mutationrate)
-                        outputbias += mutationintensity * (r.NextDouble() * 2 - 1);
-                }
-            });            
+            for (int i = 0; i < InputSize; i++)
+                if (r.NextDouble() < mutationrate)
+                    weights[i] += mutationintensity * (r.NextDouble() * 2 - 1);
+
+            if (r.NextDouble() < mutationrate)
+                bias += mutationintensity * (r.NextDouble() * 2 - 1);
+
+            if (r.NextDouble() < mutationrate)
+                outputbias += mutationintensity * (r.NextDouble() * 2 - 1);
         }
     }
 }

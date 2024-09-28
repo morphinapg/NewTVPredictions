@@ -6,17 +6,18 @@ using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using MathNet.Numerics.Distributions;
+using System.Collections.Concurrent;
 
 namespace NewTVPredictions.ViewModels
 {
     [DataContract]
-    public class Predictable : ViewModelBase
+    public class Predictable : ViewModelBase, IComparable<Predictable>
     {
         //[DataMember]
         //public double? MarginOfError, RatingMargin, ViewerMargin;
 
         [DataMember]
-        public Dictionary<EpisodePair, double>
+        public ConcurrentDictionary<EpisodePair, double>
             MarginOfError = new(),
             RatingMargin = new(),
             ViewerMargin = new();
@@ -79,7 +80,8 @@ namespace NewTVPredictions.ViewModels
             var Incorrect = PredictionResults.Where(x => !x.PredictionCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.BlendedDistance).Select(x => new StatsContainer(x.BlendedDistance, x.Weight)).ToList();
             var Correct = PredictionResults.Where(x => x.PredictionCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.BlendedDistance).Select(x => new StatsContainer(x.BlendedDistance, x.Weight)).ToList();
 
-            MarginOfError[Episodes] = GetMargin(Incorrect, Correct);
+            var margin = GetMargin(Incorrect, Correct);
+            MarginOfError[Episodes] = margin != 0 ? margin : 100;
 
             if (!BlendedOnly)
             {
@@ -87,13 +89,15 @@ namespace NewTVPredictions.ViewModels
                 Incorrect = PredictionResults.Where(x => !x.RatingCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.RatingDistance).Select(x => new StatsContainer(x.RatingDistance, x.Weight)).ToList();
                 Correct = PredictionResults.Where(x => x.RatingCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.RatingDistance).Select(x => new StatsContainer(x.RatingDistance, x.Weight)).ToList();
 
-                RatingMargin[Episodes] = GetMargin(Incorrect, Correct);
+                margin = GetMargin(Incorrect, Correct);
+                    RatingMargin[Episodes] = margin != 0 ? margin : 100;
 
                 //Finally, find the margin of error for viewers predictions
                 Incorrect = PredictionResults.Where(x => !x.ViewerCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.ViewerDistance).Select(x => new StatsContainer(x.ViewerDistance, x.Weight)).ToList();
                 Correct = PredictionResults.Where(x => x.ViewerCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.ViewerDistance).Select(x => new StatsContainer(x.ViewerDistance, x.Weight)).ToList();
 
-                ViewerMargin[Episodes] = GetMargin(Incorrect, Correct);
+                margin = GetMargin(Incorrect, Correct);
+                    ViewerMargin[Episodes] = margin != 0 ? margin : 100;
             }            
         }
 
@@ -187,7 +191,7 @@ namespace NewTVPredictions.ViewModels
         public void SetAccuracyAndError(IEnumerable<ErrorContainer> RatingsResults, IEnumerable<ShowErrorContainer> PredictionResults, IEnumerable<EpisodePair> EpisodePairs)
         {
             var PredictionWeights = PredictionResults.Sum(x => x.Weight);
-            var PredictionTotals = PredictionResults.Select(x => x.Error == 0 ? x.Weight : 0).Sum();
+            var PredictionTotals = PredictionResults.Select(x => x.PredictionCorrect ? x.Weight : 0).Sum();
 
             Accuracy = PredictionTotals / PredictionWeights;
 
@@ -200,9 +204,7 @@ namespace NewTVPredictions.ViewModels
             var AllWeights = PredictionWeights + RatingsWeights;
             var AllTotals = PredictionTotals + RatingsTotals;
 
-            Error = AllTotals / AllWeights;
-
-            CalculateMarginOfError(PredictionResults, EpisodePairs);
+            Error = AllTotals / AllWeights;                
         }
 
         /// <summary>
@@ -219,6 +221,54 @@ namespace NewTVPredictions.ViewModels
             var Normal = new Normal(ShowThreshold, MarginOfError[Episodes]);
 
             return Normal.CumulativeDistribution(ShowPerformance);
+        }
+
+        public override int GetHashCode() => (Accuracy, Error).GetHashCode();
+
+        public static bool operator ==(Predictable x, Predictable y) => x.Equals(y);
+
+        public static bool operator !=(Predictable x, Predictable y) => !x.Equals(y);
+
+        public static bool operator <(Predictable x, Predictable y) => x.Accuracy < y.Accuracy || (x.Accuracy == y.Accuracy && x.Error > y.Error);
+
+        public static bool operator >(Predictable x, Predictable y) => x.Accuracy > y.Accuracy || (x.Accuracy == y.Accuracy && x.Error < y.Error);
+
+        /// <summary>
+        /// Provides the ability to sort Prediction models by most accurate first, then by lowest error
+        /// </summary>
+        /// <param name="other">PredictionModel to compare to</param>
+        public int CompareTo(Predictable? other)
+        {
+            if (other is null) return 1;
+
+            if (other.Accuracy == Accuracy)
+            {
+                if (other.Error == Error)
+                    return 0;
+                else if (other.Error < Error)
+                    return 1;
+                else
+                    return -1;
+            }
+            else if (other.Accuracy > Accuracy)
+                return 1;
+            else
+                return -1;
+        }
+
+        /// <summary>
+        /// Check for equality between this PredictionModel and another object
+        /// </summary>
+        /// <param name="obj">Object to compare</param>
+        /// <returns>true or false, whether the objects are equal</returns>
+        public override bool Equals(object? obj)
+        {
+            if (obj is null) return false;
+
+            if (obj is Predictable model && model.Accuracy == Accuracy && model.Error == Error)
+                return true;
+            else
+                return false;
         }
     }   
 }

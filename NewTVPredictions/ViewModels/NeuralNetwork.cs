@@ -45,11 +45,11 @@ namespace NewTVPredictions.ViewModels
                 throw new Exception("Average and/or Deviation values missing!");
             if (average.Count != deviation.Count)
                 throw new Exception("Input Types mismatch on Average and Deviation!");
-            if (average.Concat(deviation).Select(x => x.Length != average[0].Length).Any())
+            if (average.Concat(deviation).Where(x => x.Length != average[0].Length).Any())
                 throw new Exception("Number of inputs does not match on every instance of average/deviation!");
             if (average.Count != outputbias.Count)
                 throw new Exception("Input and output types do not match!");
-            if (outputbias.Select(x => x.Length != outputbias[0].Length).Any())
+            if (outputbias.Where(x => x.Length != outputbias[0].Length).Any())
                 throw new Exception("Number of outputs does not match for every outputbias!");
 
             InputCount = average[0].Length;
@@ -87,7 +87,9 @@ namespace NewTVPredictions.ViewModels
                 PreviousSize = LayerSize;
             }
 
-            OutputLayer = new Neuron[PreviousSize];
+            OutputLayer = new Neuron[OutputCount];
+            for (int i = 0; i < OutputCount; i++)
+                OutputLayer[i] = new Neuron(PreviousSize);
 
             var r = Random.Shared;
             mutationrate = r.NextDouble();
@@ -227,53 +229,28 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// Perform mutation on the model
         /// </summary>
-        public void MutateModel(bool parallel = true)
-        {
-            var MutationActions = GetMutationActions();
-
-            if (parallel)
-                Parallel.ForEach(MutationActions, x => x());
-            else
-                foreach (var action in MutationActions)
-                    action();
-
-            CheckIfNeuronsMutated();
-        }
-
-        /// <summary>
-        /// Evolve the mutationrate and mutationintensity parameters, and then return the actions necessary to mutate the rest of the model.
-        /// Remember to use CheckIfNeuronsMutated() after running these actions!
-        /// </summary>
-        /// <returns>An IEnumerable with all of the actions necessary to mutate the model</returns>
-        public IEnumerable<Action> GetMutationActions()
+        public void MutateModel()
         {
             //First, we need to set the mutation rate and intensity, as they are necessary for every other step
             mutationrate = MutateValue(mutationrate);
             mutationintensity = MutateValue(mutationintensity);
 
-            //Mutate the input bias and weight values
-            var InputAverageActions = InputAverage.Select(x => Enumerable.Range(0, InputCount).Select<int, Action>(i => () => x[i] = MutateValue(x[i]))).SelectMany(x => x);
-            var InputDeviationActions = InputDeviation.Select(x => Enumerable.Range(0, InputCount).Select<int, Action>(i => () => x[i] = MutateValue(x[i]))).SelectMany(x => x);
-            var OutputBiasActions = OutputBias.Select(x => Enumerable.Range(0, OutputCount).Select<int, Action>(i => () => x[i] = MutateValue(x[i]))).SelectMany(x => x);
-
-            //Now, mutate the neurons in the hidden and output layers
-            var NeuronActions = HiddenLayers.SelectMany(x => x).Concat(OutputLayer).Select(x => x.GetMutationActions(mutationrate, mutationintensity)).SelectMany(x => x);
-
-            return InputAverageActions.Concat(InputDeviationActions).Concat(OutputBiasActions).Concat(NeuronActions);
-        }
-
-        /// <summary>
-        /// This needs to be run after the mutation actions are run. Sets IsMutated if any neurons have IsMutated as true
-        /// </summary>
-        public void CheckIfNeuronsMutated()
-        {
-            if (!IsMutated)
+            for (int InputType = 0; InputType < InputAverage.Count; InputType++)
             {
-                var AllNeurons = HiddenLayers.SelectMany(x => x).Concat(OutputLayer);
+                for (int i = 0; i < InputCount; i++)
+                {
+                    InputAverage[InputType][i] = MutateValue(InputAverage[InputType][i]);
+                    InputDeviation[InputType][i] = MutateValue(InputDeviation[InputType][i]);
+                }
 
-                if (AllNeurons.Where(x => x.IsMutated).Any())
-                    IsMutated = true;
-            }            
+                for (int i = 0; i < OutputCount; i++)
+                    OutputBias[InputType][i] = MutateValue(OutputBias[InputType][i]);
+            }
+
+            foreach (var Neuron in HiddenLayers.SelectMany(x => x).Concat(OutputLayer))
+            {
+                Neuron.Mutate(mutationrate, mutationintensity);
+            }
         }
 
         /// <summary>

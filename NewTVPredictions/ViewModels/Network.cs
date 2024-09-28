@@ -346,7 +346,7 @@ namespace NewTVPredictions.ViewModels
         {
             var now = DateTime.Now;
             double NextYear = now.Month < 9 ? now.Year : now.Year + 1;
-            return Shows.Where(x => x.Year.HasValue).Select(x => new WeightedShow(x, 1 / (NextYear - x.Year!.Value))).ToList();
+            return Shows.Where(x => x.Year.HasValue && x.Ratings.Count > 0 && x.Viewers.Count > 0 && x.Renewed || x.Canceled).Select(x => new WeightedShow(x, 1 / (NextYear - x.Year!.Value))).ToList();
         }
 
         public override int GetHashCode()
@@ -359,7 +359,7 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         public IEnumerable<EpisodePair> GetEpisodePairs()
         {
-            return Shows.Select(x => x.Episodes).Distinct().Select(Total => Enumerable.Range(1, Total).Select(Current => new EpisodePair(Current, Total))).SelectMany(x => x);
+            return Shows.Select(x => x.Episodes).Distinct().Select(Total => Enumerable.Range(1, Total).Select(Current => new EpisodePair(Current, Total))).SelectMany(x => x).ToList();
         }
 
         
