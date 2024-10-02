@@ -29,35 +29,39 @@ namespace NewTVPredictions.ViewModels
 
         public void NextGeneration()
         {
+            Parallel.ForEach(AllNetworks, x => x.TopModelChanged = false);
+
             // STEP 1 - ACCURACY TESTING //
             //First, we need to test every PredictionModel in every Evolution model for accuracy
-            Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x), x => x.TestAccuracy(WeightedShows[x.Network]));
-            
+            Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x).Where(x => x.Accuracy is null), x => x.TestAccuracy(WeightedShows[x.Network]));            
 
             // STEP 2 - SORTING //
             Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees), x => x.Sort());
 
-            // STEP 3 - UPDATE TOP MODELS //
+            // STEP 3 - CROSSOVER //
+            Parallel.ForEach(AllNetworks, x => x.Crossover());
+
+            // STEP 4 - UPDATE TOP MODELS //
             Parallel.ForEach(AllNetworks.Select(x => Enumerable.Range(0, Evolution.NumberOfTrees).Select(y => new { Evolution = x, FamilyTree = y })).SelectMany(x => x), x => x.Evolution.UpdateTopModel(x.FamilyTree));
 
-            // STEP 4 - BREEDING //
+            // STEP 5 - BREEDING //
             var LastGeneration = new ConcurrentDictionary<Evolution, List<PredictionModel>[]>();
-            var Peak = new ConcurrentDictionary<Evolution, double>();
-            Parallel.ForEach(AllNetworks, x => 
-            {
-                LastGeneration[x] = x.GetLastGeneration();
-                Peak[x] = x.GetPeak();
-            });
+            Parallel.ForEach(AllNetworks, x => LastGeneration[x] = x.GetLastGeneration());
 
-            Parallel.ForEach(AllNetworks.Select(z => Enumerable.Range(0, Evolution.NumberOfTrees).Select(x => Enumerable.Range(0, Evolution.NumberOfModels).Select(y => new {Evolution = z, x, y }))).SelectMany(x => x).SelectMany(x => x), model => model.Evolution.Breed(model.x, model.y, LastGeneration[model.Evolution], Peak[model.Evolution]));
+            Parallel.ForEach(AllNetworks.Select(z => Enumerable.Range(0, Evolution.NumberOfTrees).Select(x => Enumerable.Range(0, Evolution.NumberOfModels).Select(y => new {Evolution = z, x, y }))).SelectMany(x => x).SelectMany(x => x), model => model.Evolution.Breed(model.x, model.y, LastGeneration[model.Evolution]));
 
-            // STEP 5 - MUTATION //
+            // STEP 6 - MUTATION //
             Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x), x => x.MutateModel());
 
-            // STEP 6 - UPDATE EVOLUTION ACCURACY, IF TOP MODELS CHANGED //
+            // STEP 7 - UPDATE EVOLUTION ACCURACY, IF TOP MODELS CHANGED //
             //these steps should only run after 100ms has passed, to avoid updating the UI too often
 
             Parallel.ForEach(AllNetworks.Where(x => x.TopModelChanged), x => x.UpdateAccuracy());
+        }
+
+        public void UpdateMargins()
+        {
+
         }
     }
 }

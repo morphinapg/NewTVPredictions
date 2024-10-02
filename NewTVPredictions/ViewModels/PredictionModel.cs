@@ -171,11 +171,11 @@ namespace NewTVPredictions.ViewModels
         /// Output 3: Renewal threshold in Viewers,
         /// Output 4: Blend factor
         /// </returns>
-        public double[] GetOutputs(Show Show, int? Episode = null)
+        public double[] GetOutputs(Show Show, int? Episode = null, List<double>? Ratings = null, List<double>? Viewers = null)
         {
-            var RatingsScore = GetPerformance(Show, 0, Episode);
+            var RatingsScore = GetPerformance(Show, 0, Episode, Ratings);
 
-            var ViewersScore = GetPerformance(Show, 1, Episode);
+            var ViewersScore = GetPerformance(Show, 1, Episode, Viewers);
 
             //Next, we need to calculate renewal threshold and blend level
 
@@ -194,9 +194,13 @@ namespace NewTVPredictions.ViewModels
         /// <param name="InputType">0 for Ratings, 1 for Viewers</param>
         /// <param name="Episode">Specify the first x number of episodes</param>
         /// <returns>A number representing the season-wide performance of the show, in Ratings or Viewers (Log10)</returns>
-        public double GetPerformance(Show Show, int InputType = 0, int? Episode = null)
+        public double GetPerformance(Show Show, int InputType = 0, int? Episode = null, List<double>? Ratings = null)
         {
-            var NumberOfEpisodes = InputType == 0 ? Show.Ratings.Count : Show.Viewers.Count;
+            if (Ratings is null)
+                Ratings = InputType == 0 ?
+                    Show.Ratings.Where(x => x is not null).Select(x => Math.Log10(Math.Max(x!.Value, 0.004))).ToList() :
+                    Show.Viewers.Where(x => x is not null).Select(x => Math.Log10(Math.Max(x!.Value, 0.0004))).ToList();
+            var NumberOfEpisodes = Ratings.Count;
             if (Episode is not null)
                 NumberOfEpisodes = Math.Min(Episode.Value, NumberOfEpisodes);
 
@@ -206,7 +210,7 @@ namespace NewTVPredictions.ViewModels
 
             inputs[0] = Show.Episodes;
             for (int i = 0; i < NumberOfEpisodes; i++)
-                inputs[i + 1] = InputType == 0 ? Show.Ratings[i]!.Value : Show.Viewers[i]!.Value;
+                inputs[i + 1] = Ratings[i];
 
             return RatingsModel.GetOutput(inputs, InputType)[0];
         }
@@ -283,9 +287,8 @@ namespace NewTVPredictions.ViewModels
             var AllEpisodeCounts = WeightedShows.Select(x => x.Show.Episodes).Distinct().ToList();
 
             double
-                ErrorWeight = 0,
+                WeightTotal = 0,
                 ErrorTotal = 0,
-                AccuracyWeight = 0,
                 AccuracyTotal = 0;    
 
             //Optimize RenewalModel for accurate predictions
@@ -326,20 +329,27 @@ namespace NewTVPredictions.ViewModels
             double[] outputs;
             double RatingsPerformance, ViewersPerformance, RatingsThreshold, ViewersThreshold, Blend, BlendedPerformance, BlendedThreshold, RatingsMax, RatingsMin, ViewersMin, ViewersMax, RatingsRange, ViewersRange, RatingsError, ViewersError, RatingsAvg, ViewersAvg;
             int Episode;
-            IEnumerable<double?> Ratings, Viewers;
+            IEnumerable<double> Ratings, Viewers;
+            List<double> ShowRatings, ShowViewers;
 
             foreach (var Show in WeightedShows)
             {
-                
-                RatingsAvg = Convert.ToDouble(Show.Show.Ratings.Average());
-                ViewersAvg = Convert.ToDouble(Show.Show.Viewers.Average());  
+                ShowRatings = Show.Ratings;
+                ShowViewers = Show.Viewers;
+                RatingsAvg = ShowRatings.Average();
+                ViewersAvg = ShowViewers.Average();
+
+                //First, test if the RatingsModel predicts an accurate value for the average ratings and viewers
+                WeightTotal += Show.Weight * Show.Show.Episodes * 2;
+                ErrorTotal += Math.Pow(GetRatingsError(Show.Show.Episodes, RatingsAvg, 0), 2) * Show.Weight * Show.Show.Episodes;
+                ErrorTotal += Math.Pow(GetRatingsError(Show.Show.Episodes, ViewersAvg, 1), 2) * Show.Weight * Show.Show.Episodes;
 
                 for (int i = 0; i < Show.Show.CurrentEpisodes; i++)
                 {
-                    Episode = i + 1;
+                    Episode = i + 1;                                    
 
                     //Get output data
-                    outputs = GetOutputs(Show.Show, Episode);
+                    outputs = GetOutputs(Show.Show, Episode, ShowRatings, ShowViewers);
                     RatingsPerformance = outputs[0];
                     ViewersPerformance = outputs[1];
                     RatingsThreshold = outputs[2];
@@ -347,13 +357,8 @@ namespace NewTVPredictions.ViewModels
                     Blend = outputs[4];
                     BlendedPerformance = RatingsPerformance * Blend + ViewersPerformance * (1 - Blend);
                     BlendedThreshold = RatingsThreshold * Blend + ViewersThreshold * (1 - Blend);
-                    Ratings = Show.Show.Ratings.Take(Episode);
-                    Viewers = Show.Show.Viewers.Take(Episode);
-
-                    //First, test if the RatingsModel predicts an accurate value for the average ratings and viewers
-                    ErrorWeight += Show.Weight * 2;
-                    ErrorTotal += Math.Pow(RatingsPerformance - RatingsAvg, 2) * Show.Weight;
-                    ErrorTotal += Math.Pow(ViewersPerformance - ViewersAvg, 2) * Show.Weight;
+                    Ratings = ShowRatings.Take(Episode);
+                    Viewers = ShowViewers.Take(Episode);                    
 
                     //Check if the ratings/viewer performance is outside the expected bounds
                     RatingsMax = Convert.ToDouble(Ratings.Max());
@@ -371,9 +376,6 @@ namespace NewTVPredictions.ViewModels
                         ErrorTotal += Math.Pow(ViewersError, 2) * Show.Weight;
 
                     //Test Accuracy
-                    AccuracyWeight += Show.Weight * 2;
-                    ErrorWeight += Show.Weight * 2;
-
                     if (Show.Show.Renewed)
                     {
                         if (RatingsPerformance > RatingsThreshold)
@@ -419,8 +421,8 @@ namespace NewTVPredictions.ViewModels
                 }
             }
 
-            Accuracy = AccuracyTotal / AccuracyWeight;
-            Error = ErrorTotal / ErrorWeight;
+            Accuracy = AccuracyTotal / WeightTotal;
+            Error = ErrorTotal / WeightTotal;
         }
 
         /// <summary>
@@ -509,6 +511,20 @@ namespace NewTVPredictions.ViewModels
         {
             RatingsModel.MutateModel();
             RenewalModel.MutateModel();
-        }     
+        }
+
+        double GetRatingsError(int Episodes, double Rating, int InputType)
+        {
+            var NumberOfInputs = Episodes + 1;
+            var inputs = new double[NumberOfInputs];
+
+            inputs[0] = Episodes;
+            for (int i = 0; i < Episodes; i++)
+                inputs[i + 1] = Rating;
+
+            var output = RatingsModel.GetOutput(inputs, InputType)[0];
+
+            return output - Rating;
+        }
     }    
 }

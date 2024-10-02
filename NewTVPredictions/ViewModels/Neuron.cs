@@ -25,7 +25,13 @@ namespace NewTVPredictions.ViewModels
         /// <param name="inputs">The number of inputs</param>
         public Neuron(int inputs)                                                           
         {
+            var r = Random.Shared;
             weights = new double[inputs];
+            for (int i = 0; i < inputs; i++)
+                weights[i] = r.NextDouble() * 2 - 1;
+
+            bias = r.NextDouble() * 2 - 1;
+            outputbias = r.NextDouble() * 2 - 1;
             InputSize = inputs;
         }
 

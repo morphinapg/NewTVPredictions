@@ -1,4 +1,5 @@
-﻿using Avalonia.Threading;
+﻿using Avalonia.Input;
+using Avalonia.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -61,6 +62,39 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        public string? LastUpdateText
+        {
+            get
+            {
+                if (LastUpdate is null)
+                    return null;
+
+                var Time = DateTime.Now - LastUpdate.Value;
+
+                if (Time.TotalSeconds < 2)
+                    return "(Updated 1 second ago)";
+                else if (Time.TotalSeconds < 60)
+                    return "(Updated " + Time.Seconds + " seconds ago)";
+                else if (Time.TotalMinutes  < 2)
+                    return "(Updated 1 minute ago)";
+                else if (Time.TotalMinutes < 60)
+                    return "(Updated " + Time.Minutes + " minutes ago)";
+                else if (Time.TotalHours < 2)
+                    return "(Updated 1 hour ago)";
+                else if (Time.TotalHours < 24)
+                    return "(Updated " + Time.Hours + " hours ago)";
+                else if (Time.TotalDays < 2)
+                    return "(Updated 1 day ago)";
+                else
+                    return "(Updated " + Time.Days + " days ago)";
+            }
+        }
+
+        public void UpdateText()
+        {
+            OnPropertyChanged(nameof(LastUpdateText));
+        }
+
         /// <summary>
         /// Initialize Evolution model
         /// </summary>
@@ -68,6 +102,7 @@ namespace NewTVPredictions.ViewModels
         public Evolution(Network network)
         {
             Network = network;
+            OnPropertyChanged(nameof(Name));
 
             var WeightedShows = Network.GetWeightedShows();
 
@@ -105,15 +140,40 @@ namespace NewTVPredictions.ViewModels
             return Network.Name;
         }
 
+        public string Name => Network.Name;
+        bool ResetSecondary = false;
+
+        public void Crossover()
+        {
+            ResetSecondary = false;
+            var ModelToBeat = FamilyTrees[0].Last();
+            var ModelsToAdd = FamilyTrees[1].Where(x => x > ModelToBeat);
+            FamilyTrees[0].AddRange(ModelsToAdd);
+            if (FamilyTrees[0].Count > NumberOfModels)
+            {
+                var NumberToRemove = FamilyTrees[0].Count - NumberOfModels;
+                FamilyTrees[0].RemoveRange(30, NumberToRemove);
+                ResetSecondary = true;
+            }
+        }
+
         public void UpdateTopModel(int i)
         {
             if (FamilyTrees[i][0] > TopModels[i])
             {
                 TopModels[i] = FamilyTrees[i][0];
-                TopModelChanged = true;
+                if (i == 0)
+                {
+                    TopModelChanged = true;
+                    LastUpdate = DateTime.Now;
+                }
+                    
             }
             else
-                FamilyTrees[i][0] = TopModels[i];
+            {
+                FamilyTrees[i].Insert(0, TopModels[i]);
+                FamilyTrees[i].RemoveAt(NumberOfModels);
+            }                
         }
 
         public List<PredictionModel>[] GetLastGeneration()
@@ -130,28 +190,41 @@ namespace NewTVPredictions.ViewModels
             return Math.Log10(NumberOfModels + 1);
         }
 
-        public void Breed(int x, int y, List<PredictionModel>[] LastGeneration, double Peak)
+        public void Breed(int x, int y, List<PredictionModel>[] LastGeneration)
         {
-            var r = Random.Shared;
-
-            if (y == NumberOfModels - 1)
+            if (x == 1 && ResetSecondary)
             {
-                //The final model in the next generation should be randomized, to introduce occasional added variation
                 FamilyTrees[x][y] = new PredictionModel(Network);
             }
             else
             {
-                //The rest of the models should be breeded by selecting two parents
-                //The better performing the mode, the more likely to be chosen as a parent
-                int
-                    Parent1 = (int)(Math.Pow(10, r.NextDouble() * Peak)) - 1,
-                    Parent2 = (int)(Math.Pow(10, r.NextDouble() * Peak)) - 1;
+                var r = Random.Shared;
 
-                if (Parent1 == Parent2)
-                    FamilyTrees[x][y] = LastGeneration[x][Parent1];
+                if (y == NumberOfModels - 1)
+                {
+                    //The final model in the next generation should be randomized, to introduce occasional added variation
+                    FamilyTrees[x][y] = new PredictionModel(Network);
+                }
                 else
-                    FamilyTrees[x][y] = LastGeneration[x][Parent1] + LastGeneration[x][Parent2];
-            }
+                {
+                    //The rest of the models should be breeded by selecting two parents
+                    //The better performing the mode, the more likely to be chosen as a parent
+                    //int
+                    //    Parent1 = (int)(Math.Pow(10, r.NextDouble() * Peak)) - 1,
+                    //    Parent2 = (int)(Math.Pow(10, r.NextDouble() * Peak)) - 1;
+
+                    int
+                        Peak1 = r.Next(NumberOfModels),
+                        Peak2 = r.Next(NumberOfModels),
+                        Parent1 = r.Next(Peak1),
+                        Parent2 = r.Next(Peak2);
+
+                    if (Parent1 == Parent2)
+                        FamilyTrees[x][y] = LastGeneration[x][Parent1];
+                    else
+                        FamilyTrees[x][y] = LastGeneration[x][Parent1] + LastGeneration[x][Parent2];
+                }
+            }            
         }
 
         /// <summary>
@@ -168,13 +241,10 @@ namespace NewTVPredictions.ViewModels
             return GetOdds(AllOutputs, Episodes);
         }
 
-        public async void UpdateAccuracy()
+        public void UpdateAccuracy()
         {
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                Accuracy = TopModel.Accuracy;
-                Error = TopModel.Error;
-            });            
+            Accuracy = TopModel.Accuracy;
+            Error = TopModel.Error;
         }
     }
 }

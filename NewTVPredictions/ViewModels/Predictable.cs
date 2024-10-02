@@ -26,7 +26,7 @@ namespace NewTVPredictions.ViewModels
         double? _error;                                     //Representation of how many incorrect predictions there were, and by how much
         public double? Error                                //Some additional error values may be added as well, to optimize the RatingsModel
         {
-            get => _error;
+            get => _error is null ? null : Math.Sqrt(_error.Value);
             set
             {
                 _error = value;
@@ -223,7 +223,7 @@ namespace NewTVPredictions.ViewModels
             return Normal.CumulativeDistribution(ShowPerformance);
         }
 
-        public override int GetHashCode() => (Accuracy, Error).GetHashCode();
+        public override int GetHashCode() => new {Network.Name, Accuracy, Error}.GetHashCode();
 
         public static bool operator ==(Predictable x, Predictable y) => x.Equals(y);
 
@@ -265,7 +265,7 @@ namespace NewTVPredictions.ViewModels
         {
             if (obj is null) return false;
 
-            if (obj is Predictable model && model.Accuracy == Accuracy && model.Error == Error)
+            if (obj is Predictable model && model.Network.Name == Network.Name && model.Accuracy == Accuracy && model.Error == Error)
                 return true;
             else
                 return false;

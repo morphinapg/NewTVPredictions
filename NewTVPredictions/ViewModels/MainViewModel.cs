@@ -12,10 +12,11 @@ using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
 using System.IO;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Timers;
 
 namespace NewTVPredictions.ViewModels;
 
-[DataContract]
 public partial class MainViewModel : ViewModelBase
 {
     
@@ -97,7 +98,6 @@ public partial class MainViewModel : ViewModelBase
         SelectedNetwork = null;
     }
 
-    [DataMember]
     ObservableCollection<Network> _networks = new();
     /// <summary>
     /// Collection of all networks stored in the database
@@ -108,7 +108,15 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>
     /// Collection of all Evolution objects
     /// </summary>
-    public ObservableCollection<Evolution> EvolutionList => _evolutionList;
+    public ObservableCollection<Evolution> EvolutionList
+    {
+        get => _evolutionList;
+        set
+        {
+            _evolutionList = value;
+            OnPropertyChanged(nameof(EvolutionList));
+        }
+    }
 
     /// <summary>
     /// Saves the current network to the Networks collection
@@ -164,8 +172,6 @@ public partial class MainViewModel : ViewModelBase
     {
         if (SelectedNetwork is not null)
         {
-            SelectedNetwork.CurrentYear = CurrentYear;
-
             if (ActivePage?.Content is not NetworkHome)
             {
                 if (CurrentNetworkHome is null)
@@ -342,6 +348,41 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    bool _trainingEnabled = false;
+    /// <summary>
+    /// Whether the training button 
+    /// </summary>
+    public bool TrainingEnabled
+    {
+        get => _trainingEnabled;
+        set
+        {
+            _trainingEnabled = value;
+            OnPropertyChanged(nameof(TrainingEnabled));
+        }
+    }
+    
+
+    bool _trainingStarted = false;
+    /// <summary>
+    /// Whether training has already started or not
+    /// </summary>
+    /// 
+    public bool TrainingStarted
+    {
+        get => _trainingStarted;
+        set
+        {
+            _trainingStarted = value;
+            OnPropertyChanged(nameof(TrainingStarted));
+            OnPropertyChanged(nameof(TrainingText));
+            OnPropertyChanged(nameof(SidepanelEnabled));
+        }
+    }
+    public bool SidepanelEnabled => !TrainingStarted;
+
+    public string TrainingText => TrainingStarted ? "Stop Training" : "Start Training";
+
     /// <summary>
     /// Import Network and Show data from old Database (this code will be removed in the future)
     /// </summary>
@@ -428,19 +469,41 @@ public partial class MainViewModel : ViewModelBase
         {
             ImportVisible = false;
 
-            if (EvolutionList.Any())
-                EvolutionList.Clear();
-
-            
-            var WeightedShows = new Dictionary<Network, IEnumerable<WeightedShow>>();
+            var evolutions = new ConcurrentBag<Evolution>();
+            CurrentYear = Networks.AsParallel().SelectMany(x => x.Shows).Select(x => x.Year).Max();
             foreach (var network in Networks)
-            {
-                EvolutionList.Add(new Evolution(network));
-                WeightedShows[network] = network.GetWeightedShows();
-            }
+                network.CurrentYear = CurrentYear;
 
-            Parallel.ForEach(EvolutionList.Select(x => x.TopModel), x => x.TestAccuracy());
-            Parallel.ForEach(EvolutionList, x => x.UpdateAccuracy());
+            await Task.Run(() =>
+            {
+                
+                var WeightedShows = new ConcurrentDictionary<Network, IEnumerable<WeightedShow>>();
+
+                Parallel.ForEach(Networks, x =>
+                {
+                    var evolution = new Evolution(x);                    
+                    WeightedShows[x] = x.GetWeightedShows();
+                    evolution.TopModel.TestAccuracy(WeightedShows[x]);
+                    evolution.UpdateAccuracy();
+
+                    evolutions.Add(evolution);
+                });
+            });            
+
+            EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderBy(x => x));            
+
+            var StatusUpdate = new Timer(1000);
+            StatusUpdate.Elapsed += async (s, e) =>
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    foreach (var evolution in EvolutionList) 
+                        evolution.UpdateText();
+                });
+            };
+            StatusUpdate.Start();
+
+            TrainingEnabled = true;
         }            
     }
 
@@ -501,5 +564,37 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel()                                                                  
     {
         ActivePage.Content = CurrentHome;
+    }
+
+    bool CancelTraining = false;
+
+    /// <summary>
+    /// Start or stop training
+    /// </summary>
+    public CommandHandler Training => new CommandHandler(StartTraining);
+    async void StartTraining()
+    {
+        if (TrainingStarted)
+        {
+            CancelTraining = true;
+        }
+        else
+        {
+            var Controller = new EvolutionController(EvolutionList.ToList());
+            TrainingStarted = true;
+            CancelTraining = false;
+
+            await Task.Run(() =>
+            {
+                while (!CancelTraining)
+                {
+                    Controller.NextGeneration();
+                }
+
+                Controller.UpdateMargins();
+
+                TrainingStarted = false;
+            });
+        }       
     }
 }

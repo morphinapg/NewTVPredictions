@@ -6,7 +6,38 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="NewTVPredictions.HomePage"
              x:DataType="vm:MainViewModel">
-  <Grid>
-    <Button HorizontalAlignment="Center" VerticalAlignment="Center" Content="Import Old Database" Command="{Binding Import_Database}" IsVisible="{Binding ImportVisible}"/>
+  <Grid RowDefinitions="4*,*">
+    <DataGrid HeadersVisibility="None" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{Binding EvolutionList}" Margin="25" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False">
+      <DataGrid.Styles>
+        <Style Selector="Rectangle">
+          <Setter Property="IsVisible" Value="False"/>
+        </Style>
+        <Style Selector="TextBlock">
+          <Setter Property="Margin" Value="5"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+      </DataGrid.Styles>
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Network" Binding="{Binding Name}" FontSize="24"/>
+        <DataGridTemplateColumn>
+          <DataTemplate>
+            <Grid>
+              <ProgressBar Width="250" Height="36" Maximum="1" VerticalAlignment="Stretch"  Margin="5" Value="{Binding Accuracy}"/>
+              <TextBlock Margin="10" VerticalAlignment="Center" Text="{Binding Error}" FontSize="12"/>
+            </Grid>
+          </DataTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTextColumn Header="Accuracy" Binding="{Binding Accuracy, StringFormat={}{0:P2}}" FontSize="24"/>
+        <DataGridTemplateColumn>
+          <DataTemplate>
+            <TextBlock Text="{Binding LastUpdateText}" Opacity="0.5"/>
+          </DataTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+    <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <Button Content="{Binding TrainingText}" IsEnabled="{Binding TrainingEnabled}" Command="{Binding Training}"/>
+      <Button HorizontalAlignment="Center" VerticalAlignment="Center" Content="Import Old Database" Command="{Binding Import_Database}" IsVisible="{Binding ImportVisible}" Margin="15"/>     
+    </StackPanel>    
   </Grid>
 </UserControl>

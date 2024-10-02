@@ -17,7 +17,7 @@
       <ColumnDefinition Width="*"/>
     </Grid.ColumnDefinitions>
     
-    <Grid Background="#40202020" RowDefinitions="Auto, *, Auto">
+    <Grid Background="#40202020" RowDefinitions="Auto, *, Auto" IsEnabled="{Binding SidepanelEnabled}">
       <Grid.Styles>
         <Style Selector="Button">
           <Setter Property="Margin" Value="15"/>
@@ -56,7 +56,7 @@
     </Grid>
 
     <Grid Grid.Column="1" Background="#40000000" RowDefinitions="Auto,*">
-      <DatePicker HorizontalAlignment="Right" MonthVisible="False" DayVisible="False" Margin="35" SelectedDate="{Binding SelectedYear}" x:Name="YearPicker" VerticalAlignment="Center"/>
+      <DatePicker HorizontalAlignment="Right" MonthVisible="False" DayVisible="False" Margin="35" SelectedDate="{Binding SelectedYear}" x:Name="YearPicker" VerticalAlignment="Center" IsEnabled="{Binding SidepanelEnabled}"/>
       
       <TextBlock Text="TV Predictions" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="24" FontSize="24" FontWeight="Bold"/>
 
