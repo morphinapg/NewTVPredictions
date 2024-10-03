@@ -19,6 +19,9 @@ namespace NewTVPredictions.ViewModels
         [DataMember]
         int InputSize;
 
+        [DataMember]
+        public bool IsMutated = false;
+
         /// <summary>
         /// Initialize Neuron with just InputSize
         /// </summary>
@@ -27,11 +30,11 @@ namespace NewTVPredictions.ViewModels
         {
             var r = Random.Shared;
             weights = new double[inputs];
-            for (int i = 0; i < inputs; i++)
-                weights[i] = r.NextDouble() * 2 - 1;
+            //for (int i = 0; i < inputs; i++)
+            //    weights[i] = r.NextDouble() * 2 - 1;
 
-            bias = r.NextDouble() * 2 - 1;
-            outputbias = r.NextDouble() * 2 - 1;
+            //bias = r.NextDouble() * 2 - 1;
+            //outputbias = r.NextDouble() * 2 - 1;
             InputSize = inputs;
         }
 
@@ -98,7 +101,7 @@ namespace NewTVPredictions.ViewModels
 
             total += bias;
 
-            return output ? total : Activation(total) + outputbias;
+            return output ? total + outputbias : Activation(total) + outputbias;
         }
 
         /// <summary>
@@ -112,13 +115,22 @@ namespace NewTVPredictions.ViewModels
 
             for (int i = 0; i < InputSize; i++)
                 if (r.NextDouble() < mutationrate)
+                {
                     weights[i] += mutationintensity * (r.NextDouble() * 2 - 1);
+                    IsMutated = true;
+                }                    
 
             if (r.NextDouble() < mutationrate)
+            {
                 bias += mutationintensity * (r.NextDouble() * 2 - 1);
+                IsMutated = true;
+            }                
 
             if (r.NextDouble() < mutationrate)
+            {
                 outputbias += mutationintensity * (r.NextDouble() * 2 - 1);
+                IsMutated = true;
+            }
         }
     }
 }

@@ -16,6 +16,7 @@ namespace NewTVPredictions.ViewModels
         public ConcurrentDictionary<Network, IEnumerable<WeightedShow>> WeightedShows = new();
         public ConcurrentDictionary<Predictable, IEnumerable<EpisodePair>> EpisodePairs = new();
         public bool UpdateAccuacy = true;
+        //double Peak;
 
         public EvolutionController(List<Evolution> allNetworks)
         {
@@ -25,6 +26,8 @@ namespace NewTVPredictions.ViewModels
                 WeightedShows[x.Network] = x.GetWeightedShows();
                 EpisodePairs[x] = x.Network.GetEpisodePairs().AsParallel();
             });
+
+            //Peak = Math.Log10(Evolution.NumberOfModels + 1);
         }
 
         public void NextGeneration()
@@ -45,13 +48,15 @@ namespace NewTVPredictions.ViewModels
             Parallel.ForEach(AllNetworks.Select(x => Enumerable.Range(0, Evolution.NumberOfTrees).Select(y => new { Evolution = x, FamilyTree = y })).SelectMany(x => x), x => x.Evolution.UpdateTopModel(x.FamilyTree));
 
             // STEP 5 - BREEDING //
-            var LastGeneration = new ConcurrentDictionary<Evolution, List<PredictionModel>[]>();
-            Parallel.ForEach(AllNetworks, x => LastGeneration[x] = x.GetLastGeneration());
+            var Parents = new ConcurrentDictionary<Evolution, List<PredictionModel>[]>();
+            Parallel.ForEach(AllNetworks, x => Parents[x] = x.GetParents());
 
-            Parallel.ForEach(AllNetworks.Select(z => Enumerable.Range(0, Evolution.NumberOfTrees).Select(x => Enumerable.Range(0, Evolution.NumberOfModels).Select(y => new {Evolution = z, x, y }))).SelectMany(x => x).SelectMany(x => x), model => model.Evolution.Breed(model.x, model.y, LastGeneration[model.Evolution]));
+            Parallel.ForEach(AllNetworks.Select(z => Enumerable.Range(0, Evolution.NumberOfTrees).Select(x => Enumerable.Range(0, Evolution.NumberOfModels).Select(y => new {Evolution = z, x, y }))).SelectMany(x => x).SelectMany(x => x), model => model.Evolution.Breed(model.x, model.y, Parents[model.Evolution]));
 
             // STEP 6 - MUTATION //
+            var r = Random.Shared;
             Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x), x => x.MutateModel());
+            Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).Where(x => !x.Where(y => y.IsMutated).Any()), x => x[r.Next(Evolution.NumberOfModels)].IncreaseMutationRate());
 
             // STEP 7 - UPDATE EVOLUTION ACCURACY, IF TOP MODELS CHANGED //
             //these steps should only run after 100ms has passed, to avoid updating the UI too often
@@ -61,7 +66,11 @@ namespace NewTVPredictions.ViewModels
 
         public void UpdateMargins()
         {
+            //Add code to update the margin of error
 
+
+            //Update the network models
+            Parallel.ForEach(AllNetworks, x => x.Network.Evolution = x);
         }
     }
 }

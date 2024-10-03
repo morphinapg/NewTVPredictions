@@ -17,41 +17,30 @@ namespace NewTVPredictions.ViewModels
     {
         public const int NumberOfModels = 30, NumberOfTrees = 2;
 
-        //All family trees, each with a large number of models
+        /// <summary>
+        /// All family trees, each with a number of models
+        /// </summary>
         [DataMember]
         public List<PredictionModel>[] FamilyTrees = new List<PredictionModel>[NumberOfTrees];
 
-        //The top performing model currently
+        /// <summary>
+        /// The top performing models of all time
+        /// </summary>
         [DataMember]
-        public PredictionModel[] TopModels = new PredictionModel[NumberOfTrees];
+        public PredictionModel[][] TopModels = new PredictionModel[NumberOfTrees][];
 
-        [DataMember]
-        double? _averageAccuracy, _averageError;
+        public PredictionModel TopModel1 => TopModels[0][0];
+        public PredictionModel TopModel2 => TopModels[0][1];
 
-        public PredictionModel TopModel => TopModels[0];
-
-        public double? AverageAccuracy
-        {
-            get => _averageAccuracy;
-            set
-            {
-                _averageAccuracy = value;
-                OnPropertyChanged(nameof(AverageAccuracy));
-            }
-        }
-        public double? AverageError
-        {
-            get => _averageError;
-            set
-            {
-                _averageError = value;
-                OnPropertyChanged(nameof(AverageError));
-            }
-        }
-
+        /// <summary>
+        /// Whether the top model has changed this generation
+        /// </summary>
         public bool TopModelChanged = true;
 
         DateTime? _lastUpdate = null;
+        /// <summary>
+        /// The last time the top model was updated
+        /// </summary>
         public DateTime? LastUpdate
         {
             get => _lastUpdate;
@@ -62,6 +51,9 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        /// <summary>
+        /// Text representing how long it's been since the model updated
+        /// </summary>
         public string? LastUpdateText
         {
             get
@@ -90,6 +82,9 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        /// <summary>
+        /// Forces the UI to refresh the Last Update Text
+        /// </summary>
         public void UpdateText()
         {
             OnPropertyChanged(nameof(LastUpdateText));
@@ -110,7 +105,7 @@ namespace NewTVPredictions.ViewModels
             Parallel.For(0, NumberOfTrees, i =>
             {
                 FamilyTrees[i] = Enumerable.Range(0, NumberOfModels).Select(x => new PredictionModel(Network)).ToList();
-                TopModels[i] = FamilyTrees[i][0];
+                TopModels[i] = new PredictionModel[2];
 
                 //TopModels[i].TestAccuracyNew(WeightedShows);
             });
@@ -143,87 +138,115 @@ namespace NewTVPredictions.ViewModels
         public string Name => Network.Name;
         bool ResetSecondary = false;
 
+        /// <summary>
+        /// Whenever a model from the second branch is better than the worst model from the first, 
+        /// add all better performing models and then trim to NumberOfModels
+        /// </summary>
         public void Crossover()
         {
             ResetSecondary = false;
             var ModelToBeat = FamilyTrees[0].Last();
             var ModelsToAdd = FamilyTrees[1].Where(x => x > ModelToBeat);
             FamilyTrees[0].AddRange(ModelsToAdd);
+            FamilyTrees[0].Sort();
             if (FamilyTrees[0].Count > NumberOfModels)
             {
                 var NumberToRemove = FamilyTrees[0].Count - NumberOfModels;
                 FamilyTrees[0].RemoveRange(30, NumberToRemove);
                 ResetSecondary = true;
+                TopModels[1] = new PredictionModel[2];
             }
         }
 
+        /// <summary>
+        /// Check if the top two performing models have improved in either family tree
+        /// </summary>
+        /// <param name="i">Family Tree index</param>
         public void UpdateTopModel(int i)
         {
-            if (FamilyTrees[i][0] > TopModels[i])
+            if (FamilyTrees[i][0] > TopModels[i][0])
             {
-                TopModels[i] = FamilyTrees[i][0];
+                //Move to second place
+                TopModels[i][1] = TopModels[i][0];
+
+                //Update top model
+                TopModels[i][0] = FamilyTrees[i][0];
                 if (i == 0)
                 {
                     TopModelChanged = true;
                     LastUpdate = DateTime.Now;
                 }
-                    
+
+                //check if second child beats new second place as well
+                if (FamilyTrees[i][1] > TopModels[i][1])
+                    TopModels[i][1] = FamilyTrees[i][1];
             }
-            else
-            {
-                FamilyTrees[i].Insert(0, TopModels[i]);
-                FamilyTrees[i].RemoveAt(NumberOfModels);
-            }                
+            else if (FamilyTrees[i][0] > TopModels[i][1])
+                TopModels[i][1] = FamilyTrees[i][1];
         }
 
-        public List<PredictionModel>[] GetLastGeneration()
+        /// <summary>
+        /// Retrieve a selection of 4 parent candidates for breeding
+        /// The first two are the top two performing models of all time
+        /// The second two are the top two performing models
+        /// </summary>
+        public List<PredictionModel>[] GetParents()
         {
-            var LastGeneration = new List<PredictionModel>[NumberOfTrees];
+            var Parents = new List<PredictionModel>[NumberOfTrees];
             for (int i = 0; i < NumberOfTrees; i++)
-                LastGeneration[i] = FamilyTrees[i].ToList();
+            {
+                Parents[i] = new();
 
-            return LastGeneration;
+                //Skip choosing parents on the secondary branch if ResetSecondary is true
+                if (i == 0 || !ResetSecondary)
+                {
+                    if (TopModels[i][0] is not null)
+                        Parents[i].Add(TopModels[i][0]);
+                    if (TopModels[i][1] is not null) 
+                        Parents[i].Add(TopModels[i][1]);
+
+                    for (int j = 0; j < NumberOfModels && Parents[i].Count < 4; j++)
+                        if (FamilyTrees[i][j] < Parents[i].Last())
+                            Parents[i].Add(FamilyTrees[i][j]);
+
+                    //In the rare case where there are not two unique models from FamilyTrees in addition to the top two models
+                    while (Parents[i].Count < 4)
+                        Parents[i].Add(new PredictionModel(Network));
+                }                
+            }
+
+            return Parents;
         }
 
-        public double GetPeak()
-        {
-            return Math.Log10(NumberOfModels + 1);
-        }
-
-        public void Breed(int x, int y, List<PredictionModel>[] LastGeneration)
+        /// <summary>
+        /// Choose two parents from 4 possibilities, and combine the two to produce a child
+        /// </summary>
+        /// <param name="x">Family Tree index</param>
+        /// <param name="y">Model Index</param>
+        /// <param name="Parents">The 4 parents to choose from</param>
+        public void Breed(int x, int y, List<PredictionModel>[] Parents)
         {
             if (x == 1 && ResetSecondary)
             {
+                //Reset the secondary branch if models have crossed over to the first branch
                 FamilyTrees[x][y] = new PredictionModel(Network);
             }
             else
             {
+                //Create a new child by breeding two parents
                 var r = Random.Shared;
 
-                if (y == NumberOfModels - 1)
-                {
-                    //The final model in the next generation should be randomized, to introduce occasional added variation
-                    FamilyTrees[x][y] = new PredictionModel(Network);
-                }
+                int
+                    Parent1 = r.Next(4),
+                    Parent2 = r.Next(4);
+
+                //if (Parent2 >= Parent1)
+                //    Parent2++;
+
+                if (Parent1 == Parent2)
+                    FamilyTrees[x][y] = new PredictionModel(Parents[x][Parent1]);
                 else
-                {
-                    //The rest of the models should be breeded by selecting two parents
-                    //The better performing the mode, the more likely to be chosen as a parent
-                    //int
-                    //    Parent1 = (int)(Math.Pow(10, r.NextDouble() * Peak)) - 1,
-                    //    Parent2 = (int)(Math.Pow(10, r.NextDouble() * Peak)) - 1;
-
-                    int
-                        Peak1 = r.Next(NumberOfModels),
-                        Peak2 = r.Next(NumberOfModels),
-                        Parent1 = r.Next(Peak1),
-                        Parent2 = r.Next(Peak2);
-
-                    if (Parent1 == Parent2)
-                        FamilyTrees[x][y] = LastGeneration[x][Parent1];
-                    else
-                        FamilyTrees[x][y] = LastGeneration[x][Parent1] + LastGeneration[x][Parent2];
-                }
+                    FamilyTrees[x][y] = Parents[x][Parent1] + Parents[x][Parent2];
             }            
         }
 
@@ -234,17 +257,23 @@ namespace NewTVPredictions.ViewModels
         /// <returns>Percentage odds of renewal</returns>
         public double GetOdds(Show Show)
         {
-            var AllOutputs = TopModel.GetPerformanceAndThreshold(Show);
+            var AllOutputs = TopModel1.GetPerformanceAndThreshold(Show);
 
             var Episodes = new EpisodePair(Math.Min(Show.Ratings.Count, Show.Viewers.Count), Show.Episodes);
 
             return GetOdds(AllOutputs, Episodes);
         }
 
+        /// <summary>
+        /// Update the Accuracy and Error of the top performing model for the UI
+        /// </summary>
         public void UpdateAccuracy()
         {
-            Accuracy = TopModel.Accuracy;
-            Error = TopModel.Error;
+            if (TopModel1 is not null)
+            {
+                Accuracy = TopModel1.Accuracy;
+                Error = TopModel1.Error;
+            }            
         }
     }
 }

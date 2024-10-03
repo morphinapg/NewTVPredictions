@@ -102,7 +102,15 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>
     /// Collection of all networks stored in the database
     /// </summary>
-    public ObservableCollection<Network> Networks => _networks;
+    public ObservableCollection<Network> Networks
+    {
+        get => _networks;
+        set
+        {
+            _networks = value;
+            OnPropertyChanged(nameof(Networks));
+        }
+    }
 
     ObservableCollection<Evolution> _evolutionList = new();
     /// <summary>
@@ -483,8 +491,8 @@ public partial class MainViewModel : ViewModelBase
                 {
                     var evolution = new Evolution(x);                    
                     WeightedShows[x] = x.GetWeightedShows();
-                    evolution.TopModel.TestAccuracy(WeightedShows[x]);
-                    evolution.UpdateAccuracy();
+                    //evolution.TopModel1.TestAccuracy(WeightedShows[x]);
+                    //evolution.UpdateAccuracy();
 
                     evolutions.Add(evolution);
                 });
@@ -592,9 +600,13 @@ public partial class MainViewModel : ViewModelBase
                 }
 
                 Controller.UpdateMargins();
-
-                TrainingStarted = false;
+                
             });
+
+            EvolutionList = new ObservableCollection<Evolution>(EvolutionList.OrderBy(x => x));
+            Networks = new ObservableCollection<Network>(Networks.OrderBy(x => x.Evolution));
+
+            TrainingStarted = false;
         }       
     }
 }

@@ -26,7 +26,7 @@ namespace NewTVPredictions.ViewModels
         double? _error;                                     //Representation of how many incorrect predictions there were, and by how much
         public double? Error                                //Some additional error values may be added as well, to optimize the RatingsModel
         {
-            get => _error is null ? null : Math.Sqrt(_error.Value);
+            get => _error;
             set
             {
                 _error = value;
@@ -45,6 +45,9 @@ namespace NewTVPredictions.ViewModels
                 OnPropertyChanged(nameof(Accuracy));
             }
         }
+
+        [DataMember]
+        public bool Duplicate = false;
 
         //A reference to the parent network
         [DataMember]
@@ -223,15 +226,50 @@ namespace NewTVPredictions.ViewModels
             return Normal.CumulativeDistribution(ShowPerformance);
         }
 
-        public override int GetHashCode() => new {Network.Name, Accuracy, Error}.GetHashCode();
+        public override int GetHashCode() => new {Network.Name, Accuracy, Error, Duplicate}.GetHashCode();
 
         public static bool operator ==(Predictable x, Predictable y) => x.Equals(y);
 
         public static bool operator !=(Predictable x, Predictable y) => !x.Equals(y);
 
-        public static bool operator <(Predictable x, Predictable y) => x.Accuracy < y.Accuracy || (x.Accuracy == y.Accuracy && x.Error > y.Error);
+        public static bool operator <(Predictable x, Predictable y)
+        {
+            if (x is not null)
+            {
+                if (y is null)
+                    return false;
 
-        public static bool operator >(Predictable x, Predictable y) => x.Accuracy > y.Accuracy || (x.Accuracy == y.Accuracy && x.Error < y.Error);
+                if (x.Duplicate == y.Duplicate)
+                    return x.Accuracy < y.Accuracy || (x.Accuracy == y.Accuracy && x.Error > y.Error);
+                else if (x.Duplicate && !y.Duplicate)
+                    return false;
+                else
+                    return true;
+            }   
+            else
+                return false;
+        }
+
+        public static bool operator >(Predictable x, Predictable y)
+        {
+            
+
+            if (x is not null)
+            {
+
+                if (y is null)
+                    return true;
+
+                if (x.Duplicate == y.Duplicate)
+                    return x.Accuracy > y.Accuracy || (x.Accuracy == y.Accuracy && x.Error < y.Error);
+                else if (x.Duplicate && !y.Duplicate)
+                    return true;
+                else
+                    return false;
+            }     
+            else
+                return false;
+        }
 
         /// <summary>
         /// Provides the ability to sort Prediction models by most accurate first, then by lowest error
@@ -241,19 +279,29 @@ namespace NewTVPredictions.ViewModels
         {
             if (other is null) return 1;
 
-            if (other.Accuracy == Accuracy)
+            if (other.Duplicate == Duplicate)
             {
-                if (other.Error == Error)
-                    return 0;
-                else if (other.Error < Error)
+                if (other.Accuracy == Accuracy)
+                {
+                    if (other is null || other.Error is null)
+                        return 1;
+
+                    if (other.Error == Error)
+                        return 0;
+                    else if (other.Error < Error)
+                        return 1;
+                    else
+                        return -1;
+                }
+                else if (other.Accuracy > Accuracy)
                     return 1;
                 else
                     return -1;
             }
-            else if (other.Accuracy > Accuracy)
-                return 1;
-            else
+            else if (other.Duplicate && !Duplicate)
                 return -1;
+            else
+                return 1;
         }
 
         /// <summary>
@@ -265,7 +313,7 @@ namespace NewTVPredictions.ViewModels
         {
             if (obj is null) return false;
 
-            if (obj is Predictable model && model.Network.Name == Network.Name && model.Accuracy == Accuracy && model.Error == Error)
+            if (obj is Predictable model && model.Network.Name == Network.Name && model.Accuracy == Accuracy && model.Error == Error && model.Duplicate == Duplicate)
                 return true;
             else
                 return false;

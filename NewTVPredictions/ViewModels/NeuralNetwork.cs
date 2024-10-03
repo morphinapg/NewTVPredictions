@@ -30,7 +30,7 @@ namespace NewTVPredictions.ViewModels
         double mutationrate, mutationintensity;                                                                         //values for controlling evolution
 
         [DataMember]
-        public bool IsMutated;
+        public bool IsMutated = false;
 
         /// <summary>
         /// Creates a new Neural Network
@@ -94,8 +94,6 @@ namespace NewTVPredictions.ViewModels
             var r = Random.Shared;
             mutationrate = r.NextDouble();
             mutationintensity = r.NextDouble();
-
-            IsMutated = false;
         }
 
         /// <summary>
@@ -151,8 +149,6 @@ namespace NewTVPredictions.ViewModels
 
             mutationrate = other.mutationrate;
             mutationintensity = other.mutationintensity;
-
-            IsMutated = other.IsMutated;
         }
 
         /// <summary>
@@ -214,11 +210,18 @@ namespace NewTVPredictions.ViewModels
 
                 if (d == mutationrate)
                 {
-                    var p = r.NextDouble();
-                    return r.NextDouble() * p + d * (1 - p);
+                    //var p = r.NextDouble();
+                    //return r.NextDouble() * p + d * (1 - p);
+
+                    double
+                        min = Math.Max(d - mutationintensity, 0),
+                        max = Math.Min(d + mutationintensity, 1),
+                        range = max - min;
+
+                    return r.NextDouble() * range + min;
                 }
                 else if (d == mutationintensity)
-                    return d + Math.Abs(r.NextDouble() * 2 - 1);
+                    return Math.Abs(d + r.NextDouble() * 2 - 1);
                 else
                     return d + (r.NextDouble() * 2 - 1) * mutationintensity;
             }
@@ -247,10 +250,14 @@ namespace NewTVPredictions.ViewModels
                     OutputBias[InputType][i] = MutateValue(OutputBias[InputType][i]);
             }
 
-            foreach (var Neuron in HiddenLayers.SelectMany(x => x).Concat(OutputLayer))
+            var Neurons = HiddenLayers.SelectMany(x => x).Concat(OutputLayer);
+            foreach (var Neuron in Neurons)
             {
                 Neuron.Mutate(mutationrate, mutationintensity);
             }
+
+            if (Neurons.Where(x => x.IsMutated).Any())
+                IsMutated = true;
         }
 
         /// <summary>
@@ -308,8 +315,6 @@ namespace NewTVPredictions.ViewModels
 
             mutationrate = Breed(x.mutationrate,y.mutationrate);
             mutationintensity = Breed(x.mutationintensity, y.mutationintensity);
-
-            IsMutated = false;
         }
 
         public static NeuralNetwork operator +(NeuralNetwork x, NeuralNetwork y)
@@ -317,6 +322,21 @@ namespace NewTVPredictions.ViewModels
             return new NeuralNetwork(x, y);
         }
 
-        
+        public void IncreaseMutationRate()
+        {
+            var r = Random.Shared;
+
+            //var p = r.NextDouble();
+            //var rate = r.NextDouble() * (1 - mutationrate) + mutationrate;
+
+            //mutationrate = rate * p + (1 - p) * mutationrate;
+
+            double
+                        min = mutationrate,
+                        max = Math.Min(mutationrate + mutationintensity, 1),
+                        range = max - min;
+
+            mutationrate = r.NextDouble() * range + min;
+        }
     }
 }
