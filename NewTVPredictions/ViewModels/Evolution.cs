@@ -275,5 +275,63 @@ namespace NewTVPredictions.ViewModels
                 Error = TopModel1.Error;
             }            
         }
+
+        public void GeneratePredictions(int year, bool parallel)
+        {
+            if (TopModel1 is not null)
+            {
+                var Shows = Network.Shows.Where(x => x.Year == year && x.CurrentOdds is null);
+                var Predictions = new ConcurrentDictionary<Show, PredictionContainer>();
+
+                Parallel.ForEach(Shows, x =>
+                {
+                    var outputs = TopModel1.GetOutputs(x);
+                    var Ratings = x.Ratings.Where(x => x is not null && x > 0).Select(x => Math.Log10(x!.Value)).ToList();
+                    var Viewers = x.Viewers.Where(x => x is not null && x > 0).Select(x => Math.Log10(x!.Value)).ToList();
+                    double
+                        CurrentRating = outputs[0],
+                        CurrentViewers = outputs[1],
+                        TargetRating = outputs[2],
+                        TargetViewers = outputs[3],
+                        Blend = outputs[4],
+                        BlendedPerformance = CurrentRating * Blend + CurrentViewers * (1 - Blend),
+                        BlendedThreshold = TargetRating * Blend + TargetViewers * (1 - Blend),
+                        CurrentOdds = 0.5;
+
+                    CurrentRating = Math.Pow(10,CurrentRating);
+                    CurrentViewers = Math.Pow(10,CurrentViewers);
+                    TargetRating = Math.Pow(10,TargetRating);
+                    TargetViewers = Math.Pow(10,TargetViewers);
+                    BlendedPerformance = Math.Pow(10,BlendedPerformance);
+                    BlendedThreshold = Math.Pow(10, BlendedThreshold);
+
+                    double CurrentPerformance = BlendedPerformance / BlendedThreshold;
+
+                    if (parallel)
+                    {
+                        x.CurrentRating = CurrentRating;
+                        x.CurrentViewers = CurrentViewers;
+                        x.TargetRating = TargetRating;
+                        x.TargetViewers = TargetViewers;
+                        x.CurrentPerformance = CurrentPerformance;
+                        x.CurrentOdds = CurrentOdds;
+                    }
+                    else
+                        Predictions[x] = new PredictionContainer(CurrentRating, CurrentViewers, CurrentPerformance, TargetRating, TargetViewers, CurrentOdds);
+                });
+
+                if (!parallel)
+                    foreach (var Show in Shows)
+                    {
+                        var Prediction = Predictions[Show];
+                        Show.CurrentRating = Prediction.CurrentRating;
+                        Show.CurrentViewers = Prediction.CurrentViewers;
+                        Show.TargetRating = Prediction.TargetRating;
+                        Show.TargetViewers = Prediction.TargetViewers;
+                        Show.CurrentPerformance = Prediction.CurrentPerformance;
+                        Show.CurrentOdds = Prediction.CurrentOdds;
+                    }
+            }            
+        }
     }
 }

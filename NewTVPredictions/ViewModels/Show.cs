@@ -168,12 +168,8 @@ namespace NewTVPredictions.ViewModels
             RatingsContainer.Add(new RatingsInfo(Viewers, "Viewers"));
         }
 
-        double? _currentRating, _currentViewers, _currentPerformance, _predictedOdds;
-
-        /// <summary>
-        /// The previous value from last week's predictions
-        /// </summary>
-        public double OldRating, OldViewer, OldPerformance, OldOdds;
+        [DataMember]
+        double? _currentRating, _currentViewers, _currentPerformance, _currentOdds, OldRating, OldViewers, OldPerformance, OldOdds, _targetRating, _targetViewers;
 
         /// <summary>
         /// The Projected Rating for the entire season
@@ -200,6 +196,7 @@ namespace NewTVPredictions.ViewModels
             {
                 _currentViewers = value;
                 OnPropertyChanged(nameof(CurrentViewers));
+                OnPropertyChanged(nameof(CurrentViewersString));
             }
         }
 
@@ -212,12 +209,12 @@ namespace NewTVPredictions.ViewModels
         {
             get
             {
-                if (_currentViewers is null)
+                if (CurrentViewers is null)
                     return null;
-                else if (_currentViewers >= 1)
-                    return _currentViewers + "M";
+                else if (CurrentViewers >= 1)
+                    return Math.Round(CurrentViewers.Value, 3) + "M";
                 else
-                    return _currentViewers * 1000 + "K";
+                    return Math.Round(CurrentViewers.Value, 3) * 1000 + "K";
             }
         }
 
@@ -241,13 +238,57 @@ namespace NewTVPredictions.ViewModels
         /// The predicted odds of renewal. Value between 0-100%.
         /// 50% means right on the renewal threshold.
         /// </summary>
-        public double? PredictedOdds
+        public double? CurrentOdds
         {
-            get => _predictedOdds;
+            get => _currentOdds;
             set
             {
-                _predictedOdds = value;
-                OnPropertyChanged(nameof(PredictedOdds));
+                _currentOdds = value;
+                OnPropertyChanged(nameof(CurrentOdds));
+                OnPropertyChanged(nameof(PredictionStatus));
+            }
+        }
+
+        /// <summary>
+        /// The ideal rating value for the season
+        /// </summary>
+        public double? TargetRating
+        {
+            get => _targetRating;
+            set
+            {
+                _targetRating = value;
+                OnPropertyChanged(nameof(TargetRating));
+            }
+        }
+
+        /// <summary>
+        /// The ideal number of viewers for the season (millions)
+        /// </summary>
+        public double? TargetViewers
+        {
+            get => _targetViewers;
+            set
+            {
+                _targetViewers = value;
+                OnPropertyChanged(nameof(TargetViewers));
+                OnPropertyChanged(nameof(TargetViewersString));
+            }                
+        }
+
+        /// <summary>
+        /// Represets TargetViewers as a string formatted by Millions (M) or thousands (K) of viewers
+        /// </summary>
+        public string? TargetViewersString
+        {
+            get
+            {
+                if (TargetViewers is null)
+                    return null;
+                else if (TargetViewers >= 1)
+                    return Math.Round(TargetViewers.Value, 2) + "M";
+                else
+                    return Math.Round(TargetViewers.Value, 3) * 1000 + "K";
             }
         }
 
@@ -259,17 +300,17 @@ namespace NewTVPredictions.ViewModels
         {
             get
             {
-                if (string.IsNullOrEmpty(RenewalStatus))
+                if (string.IsNullOrEmpty(RenewalStatus) && CurrentOdds is not null)
                 {
-                    if (PredictedOdds < 0.2)
+                    if (CurrentOdds < 0.2)
                         return "Certain Cancellation";
-                    else if (PredictedOdds < 0.4)
+                    else if (CurrentOdds < 0.4)
                         return "Likely Cancellation";
-                    else if (PredictedOdds < 0.5)
+                    else if (CurrentOdds < 0.5)
                         return "Leaning Towards Cancellation";
-                    else if (PredictedOdds < 0.6)
-                        return "Learning Towards Renewal";
-                    else if (PredictedOdds < 0.8)
+                    else if (CurrentOdds < 0.6)
+                        return "Leaning Towards Renewal";
+                    else if (CurrentOdds < 0.8)
                         return "Likely Renewal";
                     else
                         return "Certain Renewal";
@@ -282,20 +323,26 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// Color to be used with PredictionStatus in the UI
         /// </summary>
-        public Color RenewalColor
+        public IBrush RenewalColor
         {
             get
             {
                 if (Renewed)
-                    return Colors.Green;
+                    return Brushes.Green;
                 else if (Canceled)
-                    return Colors.Red;
+                    return Brushes.Red;
                 else if (string.IsNullOrEmpty(RenewalStatus))
-                    return Colors.White;
+                    return Brushes.White;
                 else
-                    return Colors.Gray;
+                    return Brushes.Gray;
             }
         }
+
+        public double? RatingChange => CurrentRating - OldRating;
+        public double? ViewerChange => CurrentViewers - OldViewers;
+        public double? PerformanceChange => CurrentPerformance - OldPerformance;
+        public double? OddsChange => CurrentOdds - OldOdds;
+
 
         /// <summary>
         /// ToString should display the Show name

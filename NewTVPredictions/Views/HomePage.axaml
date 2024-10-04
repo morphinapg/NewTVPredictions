@@ -7,7 +7,7 @@
              x:Class="NewTVPredictions.HomePage"
              x:DataType="vm:MainViewModel">
   <Grid RowDefinitions="4*,*">
-    <DataGrid HeadersVisibility="None" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{Binding EvolutionList}" Margin="25" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False">
+    <DataGrid IsHitTestVisible="False" HeadersVisibility="None" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{Binding EvolutionList}" Margin="25" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False">
       <DataGrid.Styles>
         <Style Selector="Rectangle">
           <Setter Property="IsVisible" Value="False"/>

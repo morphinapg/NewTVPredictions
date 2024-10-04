@@ -165,6 +165,7 @@ public partial class MainViewModel : ViewModelBase
         set
         {
             _selectedNetwork = value;
+            
             OnPropertyChanged(nameof(SelectedNetwork));           
 
             SelectNetwork();
@@ -180,6 +181,8 @@ public partial class MainViewModel : ViewModelBase
     {
         if (SelectedNetwork is not null)
         {
+            SelectedNetwork.CurrentYear = CurrentYear;
+
             if (ActivePage?.Content is not NetworkHome)
             {
                 if (CurrentNetworkHome is null)
@@ -188,10 +191,7 @@ public partial class MainViewModel : ViewModelBase
                 await ReplacePage(ActivePage!, CurrentNetworkHome);
             }
 
-            if (SubPage.Content is null)
-                SubPage.Content = new Predictions();
-            else
-                SwitchTab();
+            SwitchTab();
         }
     }
 
@@ -243,6 +243,9 @@ public partial class MainViewModel : ViewModelBase
         switch (SelectedTabIndex)
         {
             case PREDICTIONS:
+                if (SelectedNetwork is not null && SelectedNetwork.Evolution is not null && CurrentYear is not null)
+                    SelectedNetwork.Evolution.GeneratePredictions(CurrentYear.Value, CurrentPredictions is null);
+
                 if (CurrentPredictions is null)
                     CurrentPredictions = new Predictions();
 
@@ -321,7 +324,11 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(CurrentYear));
             
             if (SelectedNetwork is not null)
+            {
                 SelectedNetwork.CurrentYear = value;
+
+                SwitchTab();
+            }                
         }
     }
 
@@ -484,15 +491,10 @@ public partial class MainViewModel : ViewModelBase
 
             await Task.Run(() =>
             {
-                
-                var WeightedShows = new ConcurrentDictionary<Network, IEnumerable<WeightedShow>>();
-
                 Parallel.ForEach(Networks, x =>
                 {
-                    var evolution = new Evolution(x);                    
-                    WeightedShows[x] = x.GetWeightedShows();
-                    //evolution.TopModel1.TestAccuracy(WeightedShows[x]);
-                    //evolution.UpdateAccuracy();
+                    var evolution = new Evolution(x);       
+                    x.Evolution = evolution;
 
                     evolutions.Add(evolution);
                 });
@@ -594,6 +596,8 @@ public partial class MainViewModel : ViewModelBase
 
             await Task.Run(() =>
             {
+                Parallel.ForEach(Networks.SelectMany(x => x.Shows), x => x.CurrentOdds = null);
+
                 while (!CancelTraining)
                 {
                     Controller.NextGeneration();

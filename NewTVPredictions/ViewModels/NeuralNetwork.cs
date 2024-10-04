@@ -63,7 +63,7 @@ namespace NewTVPredictions.ViewModels
 
             LayerSizes = new();
 
-            while (CurrentLayer != OutputCount)
+            while (CurrentLayer != OutputCount && LayerSizes.Count < 2)
             {
                 LayerSizes.Add(CurrentLayer);
 

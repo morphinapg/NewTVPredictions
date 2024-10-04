@@ -335,11 +335,11 @@ namespace NewTVPredictions.ViewModels
             //The next step is to look for predicted ratings values that fall outside of the expected minimum/maximum range
             //To do this, we need to analyze the range of values that appear in every show in the network
 
-            //var RatingRatio = Convert.ToDouble(WeightedShows.Select(x => x.Show.Ratings.Max() - x.Show.Ratings.Min()).Max());
-            //var ViewerRatio = Convert.ToDouble(WeightedShows.Select(x => x.Show.Viewers.Max() - x.Show.Viewers.Min()).Max());
+            var RatingRatio = Convert.ToDouble(WeightedShows.Select(x => x.Show.Ratings.Max() - x.Show.Ratings.Min()).Max());
+            var ViewerRatio = Convert.ToDouble(WeightedShows.Select(x => x.Show.Viewers.Max() - x.Show.Viewers.Min()).Max());
 
             double[] outputs;
-            double RatingsPerformance, ViewersPerformance, RatingsThreshold, ViewersThreshold, Blend, BlendedPerformance, BlendedThreshold;//, RatingsMax, RatingsMin, ViewersMin, ViewersMax, RatingsRange, ViewersRange, RatingsError, ViewersError, RatingsAvg, ViewersAvg;
+            double RatingsPerformance, ViewersPerformance, RatingsThreshold, ViewersThreshold, Blend, BlendedPerformance, BlendedThreshold, RatingsMax, RatingsMin, ViewersMin, ViewersMax, RatingsRange, ViewersRange, RatingsError, ViewersError, RatingsAvg, ViewersAvg;
             int Episode;
             IEnumerable<double> Ratings, Viewers;
             List<double> ShowRatings, ShowViewers;
@@ -348,13 +348,13 @@ namespace NewTVPredictions.ViewModels
             {
                 ShowRatings = Show.Ratings;
                 ShowViewers = Show.Viewers;
-                //RatingsAvg = ShowRatings.Average();
-                //ViewersAvg = ShowViewers.Average();
+                RatingsAvg = ShowRatings.Average();
+                ViewersAvg = ShowViewers.Average();
 
                 //First, test if the RatingsModel predicts an accurate value for the average ratings and viewers
                 WeightTotal += Show.Weight * Show.Show.Episodes * 2;
-                //ErrorTotal += Math.Pow(GetRatingsError(Show.Show.Episodes, RatingsAvg, 0), 2) * Show.Weight * Show.Show.Episodes;
-                //ErrorTotal += Math.Pow(GetRatingsError(Show.Show.Episodes, ViewersAvg, 1), 2) * Show.Weight * Show.Show.Episodes;
+                ErrorTotal += Math.Pow(GetRatingsError(Show.Show.Episodes, RatingsAvg, 0), 2) * Show.Weight * Show.Show.Episodes;
+                ErrorTotal += Math.Pow(GetRatingsError(Show.Show.Episodes, ViewersAvg, 1), 2) * Show.Weight * Show.Show.Episodes;
 
                 for (int i = 0; i < Show.Show.CurrentEpisodes; i++)
                 {
@@ -370,22 +370,22 @@ namespace NewTVPredictions.ViewModels
                     BlendedPerformance = RatingsPerformance * Blend + ViewersPerformance * (1 - Blend);
                     BlendedThreshold = RatingsThreshold * Blend + ViewersThreshold * (1 - Blend);
                     Ratings = ShowRatings.Take(Episode);
-                    Viewers = ShowViewers.Take(Episode);                    
+                    Viewers = ShowViewers.Take(Episode);
 
-                    //Check if the ratings/viewer performance is outside the expected bounds
-                    //RatingsMax = Convert.ToDouble(Ratings.Max());
-                    //RatingsMin = Convert.ToDouble(Ratings.Min());
-                    //RatingsRange = Math.Max(RatingsPerformance - RatingsMin, RatingsMax - RatingsPerformance);
-                    //RatingsError = Math.Max(RatingsRange - RatingRatio, 0);
-                    //if (RatingsError > 0)
-                    //    ErrorTotal += Math.Pow(RatingsError, 2) * Show.Weight;
+                    //Check if the ratings / viewer performance is outside the expected bounds
+                    RatingsMax = Convert.ToDouble(Ratings.Max());
+                    RatingsMin = Convert.ToDouble(Ratings.Min());
+                    RatingsRange = Math.Max(RatingsPerformance - RatingsMin, RatingsMax - RatingsPerformance);
+                    RatingsError = Math.Max(RatingsRange - RatingRatio, 0);
+                    if (RatingsError > 0)
+                        ErrorTotal += Math.Pow(RatingsError, 2) * Show.Weight;
 
-                    //ViewersMax = Convert.ToDouble(Viewers.Max());
-                    //ViewersMin = Convert.ToDouble(Viewers.Min());
-                    //ViewersRange = Math.Max(ViewersPerformance - ViewersMin, ViewersMax - ViewersPerformance);
-                    //ViewersError = Math.Max(ViewersRange - ViewerRatio, 0);
-                    //if (ViewersError > 0)
-                    //    ErrorTotal += Math.Pow(ViewersError, 2) * Show.Weight;
+                    ViewersMax = Convert.ToDouble(Viewers.Max());
+                    ViewersMin = Convert.ToDouble(Viewers.Min());
+                    ViewersRange = Math.Max(ViewersPerformance - ViewersMin, ViewersMax - ViewersPerformance);
+                    ViewersError = Math.Max(ViewersRange - ViewerRatio, 0);
+                    if (ViewersError > 0)
+                        ErrorTotal += Math.Pow(ViewersError, 2) * Show.Weight;
 
                     //Test Accuracy
                     if (Show.Show.Renewed)

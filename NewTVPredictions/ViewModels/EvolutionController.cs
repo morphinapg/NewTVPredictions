@@ -67,10 +67,6 @@ namespace NewTVPredictions.ViewModels
         public void UpdateMargins()
         {
             //Add code to update the margin of error
-
-
-            //Update the network models
-            Parallel.ForEach(AllNetworks, x => x.Network.Evolution = x);
         }
     }
 }

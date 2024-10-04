@@ -11,4 +11,6 @@ namespace NewTVPredictions.ViewModels
     public record ErrorContainer(Predictable Model, double Error, double Weight);
     public record ShowErrorContainer(Predictable Model, bool PredictionCorrect, double Error, double Weight, double CurrentPosition, bool RatingCorrect, bool ViewerCorrect, double RatingDistance, double ViewerDistance, double BlendedDistance);
     public record EpisodePair(int Current, int Total);
+
+    public record PredictionContainer(double CurrentRating, double CurrentViewers, double CurrentPerformance, double TargetRating, double TargetViewers, double CurrentOdds);
 }
