@@ -278,6 +278,11 @@ namespace NewTVPredictions.ViewModels
 
         public void GeneratePredictions(int year, bool parallel)
         {
+            //var AllRatings = Network.Shows.SelectMany(x => x.Ratings).Where(x => x is not null && x > 0).Select(x => Math.Log10( x!.Value)).Distinct().ToList();
+            //var AlLViewers = Network.Shows.SelectMany(x => x.Viewers).Where(x => x is not null && x > 0).Select(x => Math.Log10(x!.Value)).Distinct().ToList();
+            //var MaxChangeRatings = Network.Shows.Where(x => x.Ratings.Count > 0 && !x.Ratings.Contains(null) && !x.Ratings.Contains(0)).GroupBy(show => show.Year).Select(group => group.Max(show => show.Ratings.Average()) / group.Min(show => show.Ratings.Average())).Max()!.Value;
+            //var MaxChangeViewers = Network.Shows.Where(x => x.Viewers.Count > 0 && !x.Viewers.Contains(null) && !x.Ratings.Contains(0)).GroupBy(show => show.Year).Select(group => group.Max(show => show.Viewers.Average()) / group.Min(show => show.Viewers.Average())).Max()!.Value;
+
             if (TopModel1 is not null)
             {
                 var Shows = Network.Shows.Where(x => x.Year == year && x.CurrentOdds is null);
@@ -294,9 +299,74 @@ namespace NewTVPredictions.ViewModels
                         TargetRating = outputs[2],
                         TargetViewers = outputs[3],
                         Blend = outputs[4],
-                        BlendedPerformance = CurrentRating * Blend + CurrentViewers * (1 - Blend),
-                        BlendedThreshold = TargetRating * Blend + TargetViewers * (1 - Blend),
+                        BlendedPerformance,
+                        BlendedThreshold,
                         CurrentOdds = 0.5;
+
+                    //CurrentRating = TopModel1.FindRatingsMatch(x.Episodes, 0, CurrentRating, AllRatings);
+                    //TargetRating = TopModel1.FindRatingsMatch(x.Episodes, 0, TargetRating, AllRatings);
+                    //CurrentViewers = TopModel1.FindRatingsMatch(x.Episodes, 1, CurrentViewers, AlLViewers);
+                    //TargetViewers = TopModel1.FindRatingsMatch(x.Episodes, 1, TargetViewers, AlLViewers);
+
+                    //double
+                    //    MinRating = Convert.ToDouble(x.Ratings.Min()),
+                    //    MaxRating = Convert.ToDouble(x.Ratings.Max()),
+                    //    MinViewers = Convert.ToDouble(x.Viewers.Min()),
+                    //    MaxViewers = Convert.ToDouble(x.Viewers.Max());
+
+                    //if (x.CurrentEpisodes < x.Episodes)
+                    //{
+                    //    var RatingsQuery = Network.Shows.Where(show => show.Episodes >= x.Episodes).Select(show => show.Ratings.Where(x => x is not null && x > 0).Take(x.Episodes));
+                    //    var ViewersQuery = Network.Shows.Where(show => show.Episodes >= x.Episodes).Select(show => show.Viewers.Where(x => x is not null && x > 0).Take(x.Episodes));
+
+                    //    var MaxRange = RatingsQuery.Select(ratings => ratings.Max() / ratings.Take(x.CurrentEpisodes).Max()).Max();
+                    //    var MinRange = RatingsQuery.Select(ratings => ratings.Take(x.CurrentEpisodes).Min() / ratings.Min()).Max();
+
+                    //    MinRating /= Convert.ToDouble(MinRange);
+                    //    MaxRating *= Convert.ToDouble(MaxRange);    
+                        
+                    //    MaxRange = ViewersQuery.Select(ratings => ratings.Max() / ratings.Take(x.CurrentEpisodes).Max()).Max();
+                    //    MinRange = ViewersQuery.Select(ratings => ratings.Take(x.CurrentEpisodes).Min() / ratings.Min()).Max();
+
+                    //    MinViewers /= Convert.ToDouble(MinRange);
+                    //    MaxViewers *= Convert.ToDouble(MaxRange);
+                    //}
+
+                    //bool
+                    //    RatingIncrease = CurrentRating < TargetRating,
+                    //    ViewersIncrease = CurrentViewers < TargetViewers;
+
+                    
+
+
+                    //var PossibleRatings = Enumerable.Range(0, (int)((MaxRating - MinRating) / 0.01) + 1).Select(i => MinRating + i * 0.01).Select(d => Math.Log10(d));
+                    //CurrentRating = Math.Pow(10, TopModel1.FindRatingsMatch(x.Episodes, 0, CurrentRating, PossibleRatings));
+
+                    //var PossibleViewers = Enumerable.Range(0, (int)((MaxViewers - MinViewers) / 0.001) + 1).Select(i => MinViewers + i * 0.001).Select(d => Math.Log10(d));
+                    //CurrentViewers = Math.Pow(10, TopModel1.FindRatingsMatch(x.Episodes, 1, CurrentViewers, PossibleViewers));
+
+
+                    //MaxRating = CurrentRating * MaxChangeRatings;
+                    //MinRating = CurrentRating / MaxChangeRatings;
+
+                    //PossibleRatings = RatingIncrease ?
+                    //    Enumerable.Range(0, (int)((MaxRating - CurrentRating) / 0.01) + 1).Select(i => CurrentRating + i * 0.01).Select(d => Math.Log10(d / CurrentRating)) :
+                    //    Enumerable.Range(0, (int)((CurrentRating - MinRating) / 0.01) + 1).Select(i => MinRating + i * 0.01).Select(d => Math.Log10(d / CurrentRating));
+                    //TargetRating = CurrentRating * Math.Pow(10, TopModel1.FindTargetAdjustment(Ratings, PossibleRatings, TargetRating, 0));
+
+                    //MaxViewers = CurrentViewers * MaxChangeViewers;
+                    //MinViewers = CurrentViewers / MaxChangeViewers;
+
+                    //PossibleViewers = ViewersIncrease ?
+                    //    Enumerable.Range(0, (int)((MaxViewers - CurrentViewers) / 0.001) + 1).Select(i => CurrentViewers + i * 0.001).Select(d => Math.Log10(d / CurrentViewers)) :
+                    //    Enumerable.Range(0, (int)((CurrentViewers - MinViewers) / 0.001) + 1).Select(i => MinViewers + i * 0.001).Select(d => Math.Log10(d / CurrentViewers));
+
+                    //TargetViewers = CurrentViewers * Math.Pow(10, TopModel1.FindTargetAdjustment(Viewers, PossibleViewers, TargetViewers, 1));
+
+
+                    BlendedPerformance = CurrentRating * Blend + CurrentViewers * (1 - Blend);
+                    BlendedThreshold = TargetRating * Blend + TargetViewers * (1 - Blend);
+
 
                     CurrentRating = Math.Pow(10,CurrentRating);
                     CurrentViewers = Math.Pow(10,CurrentViewers);

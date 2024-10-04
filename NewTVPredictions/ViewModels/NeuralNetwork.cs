@@ -63,7 +63,7 @@ namespace NewTVPredictions.ViewModels
 
             LayerSizes = new();
 
-            while (CurrentLayer != OutputCount && LayerSizes.Count < 2)
+            while (CurrentLayer != OutputCount)
             {
                 LayerSizes.Add(CurrentLayer);
 
@@ -243,7 +243,7 @@ namespace NewTVPredictions.ViewModels
                 for (int i = 0; i < InputCount; i++)
                 {
                     InputAverage[InputType][i] = MutateValue(InputAverage[InputType][i]);
-                    InputDeviation[InputType][i] = MutateValue(InputDeviation[InputType][i]);
+                    InputDeviation[InputType][i] = Math.Abs(MutateValue(InputDeviation[InputType][i]));
                 }
 
                 for (int i = 0; i < OutputCount; i++)

@@ -212,7 +212,7 @@ namespace NewTVPredictions.ViewModels
                 if (CurrentViewers is null)
                     return null;
                 else if (CurrentViewers >= 1)
-                    return Math.Round(CurrentViewers.Value, 3) + "M";
+                    return Math.Round(CurrentViewers.Value, 2) + "M";
                 else
                     return Math.Round(CurrentViewers.Value, 3) * 1000 + "K";
             }
