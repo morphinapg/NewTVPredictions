@@ -250,19 +250,19 @@ namespace NewTVPredictions.ViewModels
             }            
         }
 
-        /// <summary>
-        /// Get the predicted Odds for a given show in its current state
-        /// </summary>
-        /// <param name="Show">Show to be tested</param>
-        /// <returns>Percentage odds of renewal</returns>
-        public double GetOdds(Show Show)
-        {
-            var AllOutputs = TopModel1.GetPerformanceAndThreshold(Show);
+        ///// <summary>
+        ///// Get the predicted Odds for a given show in its current state
+        ///// </summary>
+        ///// <param name="Show">Show to be tested</param>
+        ///// <returns>Percentage odds of renewal</returns>
+        //public double GetOdds(Show Show)
+        //{
+        //    var AllOutputs = TopModel1.GetPerformanceAndThreshold(Show);
 
-            var Episodes = new EpisodePair(Math.Min(Show.Ratings.Count, Show.Viewers.Count), Show.Episodes);
+        //    var Episodes = new EpisodePair(Math.Min(Show.Ratings.Count, Show.Viewers.Count), Show.Episodes);
 
-            return GetOdds(AllOutputs, Episodes);
-        }
+        //    return GetOdds(AllOutputs, Episodes);
+        //}
 
         /// <summary>
         /// Update the Accuracy and Error of the top performing model for the UI
@@ -278,91 +278,67 @@ namespace NewTVPredictions.ViewModels
 
         public void GeneratePredictions(int year, bool parallel)
         {
-            //var AllRatings = Network.Shows.SelectMany(x => x.Ratings).Where(x => x is not null && x > 0).Select(x => Math.Log10( x!.Value)).Distinct().ToList();
-            //var AlLViewers = Network.Shows.SelectMany(x => x.Viewers).Where(x => x is not null && x > 0).Select(x => Math.Log10(x!.Value)).Distinct().ToList();
-            //var MaxChangeRatings = Network.Shows.Where(x => x.Ratings.Count > 0 && !x.Ratings.Contains(null) && !x.Ratings.Contains(0)).GroupBy(show => show.Year).Select(group => group.Max(show => show.Ratings.Average()) / group.Min(show => show.Ratings.Average())).Max()!.Value;
-            //var MaxChangeViewers = Network.Shows.Where(x => x.Viewers.Count > 0 && !x.Viewers.Contains(null) && !x.Ratings.Contains(0)).GroupBy(show => show.Year).Select(group => group.Max(show => show.Viewers.Average()) / group.Min(show => show.Viewers.Average())).Max()!.Value;
 
             if (TopModel1 is not null)
             {
                 var Shows = Network.Shows.Where(x => x.Year == year && x.CurrentOdds is null);
                 var Predictions = new ConcurrentDictionary<Show, PredictionContainer>();
 
+                Dictionary<int, double>
+                    RatingsAverages = Network.GetAverageRatingPerYear(0),
+                    ViewerAverages = Network.GetAverageRatingPerYear(1);
+
+                double[]
+                    RatingsOffsets = Network.GetEpisodeOffsets(RatingsAverages, 0),
+                    ViewerOffsets = Network.GetEpisodeOffsets(ViewerAverages, 1);
+
                 Parallel.ForEach(Shows, x =>
                 {
-                    var outputs = TopModel1.GetOutputs(x);
-                    var Ratings = x.Ratings.Where(x => x is not null && x > 0).Select(x => Math.Log10(x!.Value)).ToList();
-                    var Viewers = x.Viewers.Where(x => x is not null && x > 0).Select(x => Math.Log10(x!.Value)).ToList();
+                    List<double>
+                        Ratings = x.Ratings.Select((rating, i) =>
+                        {
+                            double currentrating = rating is null || rating == 0 ?
+                                Math.Log10(0.004) :
+                                Math.Log10(rating.Value);
+
+                            return currentrating - RatingsAverages[year] - RatingsOffsets[i];
+                        }).ToList(),
+
+                        Viewers = x.Viewers.Select((rating, i) =>
+                        {
+                            double currentrating = rating is null || rating == 0 ?
+                                Math.Log10(0.0004) :
+                                Math.Log10(rating.Value);
+
+                            return currentrating - ViewerAverages[year] - ViewerOffsets[i];
+                        }).ToList();
+
+                    var outputs = TopModel1.GetOutputs(x, x.Episodes, Ratings, Viewers);
+
                     double
-                        CurrentRating = outputs[0],
-                        CurrentViewers = outputs[1],
+                        ExpectedRatings = Network.GetProjectedRating(RatingsOffsets.Take(x.Episodes).ToList(), x.Episodes),
+                        ExpectedViewers = Network.GetProjectedRating(ViewerOffsets.Take(x.Episodes).ToList(), x.Episodes),
+                        RatingsProjection = Ratings.Count > 1 ? Network.GetProjectedRating(Ratings, x.Episodes) : Ratings[0] + (ExpectedRatings - RatingsOffsets[0]),
+                        ViewersProjection = Viewers.Count > 1 ? Network.GetProjectedRating(Viewers, x.Episodes) : Viewers[0] + (ExpectedViewers - ViewerOffsets[0]);
+
+                    double
+                        CurrentRating = outputs[0] + RatingsProjection,
+                        CurrentViewers = outputs[1] + ViewersProjection,
                         TargetRating = outputs[2],
                         TargetViewers = outputs[3],
                         Blend = outputs[4],
-                        BlendedPerformance,
-                        BlendedThreshold,
+                        BlendedPerformance = CurrentRating * Blend + CurrentViewers * (1 - Blend),
+                        BlendedThreshold = TargetRating * Blend + TargetViewers * (1 - Blend),
                         CurrentOdds = 0.5;
 
-                    //CurrentRating = TopModel1.FindRatingsMatch(x.Episodes, 0, CurrentRating, AllRatings);
-                    //TargetRating = TopModel1.FindRatingsMatch(x.Episodes, 0, TargetRating, AllRatings);
-                    //CurrentViewers = TopModel1.FindRatingsMatch(x.Episodes, 1, CurrentViewers, AlLViewers);
-                    //TargetViewers = TopModel1.FindRatingsMatch(x.Episodes, 1, TargetViewers, AlLViewers);
 
-                    //double
-                    //    MinRating = Convert.ToDouble(x.Ratings.Min()),
-                    //    MaxRating = Convert.ToDouble(x.Ratings.Max()),
-                    //    MinViewers = Convert.ToDouble(x.Viewers.Min()),
-                    //    MaxViewers = Convert.ToDouble(x.Viewers.Max());
+                    CurrentRating = TopModel1.GetRatingsPerformance(CurrentRating, RatingsAverages[year], 0);
 
-                    //if (x.CurrentEpisodes < x.Episodes)
-                    //{
-                    //    var RatingsQuery = Network.Shows.Where(show => show.Episodes >= x.Episodes).Select(show => show.Ratings.Where(x => x is not null && x > 0).Take(x.Episodes));
-                    //    var ViewersQuery = Network.Shows.Where(show => show.Episodes >= x.Episodes).Select(show => show.Viewers.Where(x => x is not null && x > 0).Take(x.Episodes));
+                    CurrentViewers = TopModel1.GetRatingsPerformance(CurrentViewers, ViewerAverages[year], 1);
 
-                    //    var MaxRange = RatingsQuery.Select(ratings => ratings.Max() / ratings.Take(x.CurrentEpisodes).Max()).Max();
-                    //    var MinRange = RatingsQuery.Select(ratings => ratings.Take(x.CurrentEpisodes).Min() / ratings.Min()).Max();
+                    TargetRating = TopModel1.GetRatingsPerformance(TargetRating, RatingsAverages[year], 0);
 
-                    //    MinRating /= Convert.ToDouble(MinRange);
-                    //    MaxRating *= Convert.ToDouble(MaxRange);    
-                        
-                    //    MaxRange = ViewersQuery.Select(ratings => ratings.Max() / ratings.Take(x.CurrentEpisodes).Max()).Max();
-                    //    MinRange = ViewersQuery.Select(ratings => ratings.Take(x.CurrentEpisodes).Min() / ratings.Min()).Max();
-
-                    //    MinViewers /= Convert.ToDouble(MinRange);
-                    //    MaxViewers *= Convert.ToDouble(MaxRange);
-                    //}
-
-                    //bool
-                    //    RatingIncrease = CurrentRating < TargetRating,
-                    //    ViewersIncrease = CurrentViewers < TargetViewers;
-
-                    
-
-
-                    //var PossibleRatings = Enumerable.Range(0, (int)((MaxRating - MinRating) / 0.01) + 1).Select(i => MinRating + i * 0.01).Select(d => Math.Log10(d));
-                    //CurrentRating = Math.Pow(10, TopModel1.FindRatingsMatch(x.Episodes, 0, CurrentRating, PossibleRatings));
-
-                    //var PossibleViewers = Enumerable.Range(0, (int)((MaxViewers - MinViewers) / 0.001) + 1).Select(i => MinViewers + i * 0.001).Select(d => Math.Log10(d));
-                    //CurrentViewers = Math.Pow(10, TopModel1.FindRatingsMatch(x.Episodes, 1, CurrentViewers, PossibleViewers));
-
-
-                    //MaxRating = CurrentRating * MaxChangeRatings;
-                    //MinRating = CurrentRating / MaxChangeRatings;
-
-                    //PossibleRatings = RatingIncrease ?
-                    //    Enumerable.Range(0, (int)((MaxRating - CurrentRating) / 0.01) + 1).Select(i => CurrentRating + i * 0.01).Select(d => Math.Log10(d / CurrentRating)) :
-                    //    Enumerable.Range(0, (int)((CurrentRating - MinRating) / 0.01) + 1).Select(i => MinRating + i * 0.01).Select(d => Math.Log10(d / CurrentRating));
-                    //TargetRating = CurrentRating * Math.Pow(10, TopModel1.FindTargetAdjustment(Ratings, PossibleRatings, TargetRating, 0));
-
-                    //MaxViewers = CurrentViewers * MaxChangeViewers;
-                    //MinViewers = CurrentViewers / MaxChangeViewers;
-
-                    //PossibleViewers = ViewersIncrease ?
-                    //    Enumerable.Range(0, (int)((MaxViewers - CurrentViewers) / 0.001) + 1).Select(i => CurrentViewers + i * 0.001).Select(d => Math.Log10(d / CurrentViewers)) :
-                    //    Enumerable.Range(0, (int)((CurrentViewers - MinViewers) / 0.001) + 1).Select(i => MinViewers + i * 0.001).Select(d => Math.Log10(d / CurrentViewers));
-
-                    //TargetViewers = CurrentViewers * Math.Pow(10, TopModel1.FindTargetAdjustment(Viewers, PossibleViewers, TargetViewers, 1));
-
+                    TargetViewers = TopModel1.GetRatingsPerformance(TargetViewers, ViewerAverages[year], 1);
 
                     BlendedPerformance = CurrentRating * Blend + CurrentViewers * (1 - Blend);
                     BlendedThreshold = TargetRating * Blend + TargetViewers * (1 - Blend);
@@ -374,7 +350,7 @@ namespace NewTVPredictions.ViewModels
                     TargetViewers = Math.Pow(10,TargetViewers);
                     BlendedPerformance = Math.Pow(10,BlendedPerformance);
                     BlendedThreshold = Math.Pow(10, BlendedThreshold);
-
+                    
                     double CurrentPerformance = BlendedPerformance / BlendedThreshold;
 
                     if (parallel)

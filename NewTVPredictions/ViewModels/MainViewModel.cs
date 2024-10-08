@@ -243,8 +243,8 @@ public partial class MainViewModel : ViewModelBase
         switch (SelectedTabIndex)
         {
             case PREDICTIONS:
-                if (SelectedNetwork is not null && SelectedNetwork.Evolution is not null && CurrentYear is not null)
-                    SelectedNetwork.Evolution.GeneratePredictions(CurrentYear.Value, CurrentPredictions is null);
+                if (SelectedNetwork is not null && SelectedNetwork.Evolution is not null)
+                    SelectedNetwork.Evolution.GeneratePredictions(CurrentYear, CurrentPredictions is null);
 
                 if (CurrentPredictions is null)
                     CurrentPredictions = new Predictions();
@@ -299,25 +299,25 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>
     /// returns the current TV season starting year (September through August)
     /// </summary>
-    int CurrentTVSeason                                                                 
-    {
-        get
-        {
-            var now = DateTime.Now;
-            if (now.Month < 9)
-                return now.Year - 1;
-            else
-                return now.Year;
-        }
-    }
+    
 
     int? _currentYear;
     /// <summary>
     /// The currently set TV season
     /// </summary>
-    public int? CurrentYear                                                             
+    public int CurrentYear                                                             
     {
-        get => _currentYear is null ? CurrentTVSeason : _currentYear;
+        get
+        {
+            if (_currentYear is null)
+            {
+                var season = CurrentApp.CurrentYear;
+                _currentYear = season;
+                return season;
+            }
+            else
+                return _currentYear.Value;
+        }
         set
         {
             _currentYear = value; 
@@ -337,7 +337,7 @@ public partial class MainViewModel : ViewModelBase
     /// </summary>
     public DateTimeOffset? SelectedYear                                                 
     {
-        get => CurrentYear.HasValue ? new DateTimeOffset(new DateTime(CurrentYear.Value, 1, 1), TimeSpan.Zero) : null;
+        get => new DateTimeOffset(new DateTime(CurrentYear, 1, 1), TimeSpan.Zero);
         set
         {
             var PreviousYear = _currentYear;
@@ -485,7 +485,11 @@ public partial class MainViewModel : ViewModelBase
             ImportVisible = false;
 
             var evolutions = new ConcurrentBag<Evolution>();
-            CurrentYear = Networks.AsParallel().SelectMany(x => x.Shows).Select(x => x.Year).Max();
+            var MaxYear = Networks.AsParallel().SelectMany(x => x.Shows).Select(x => x.Year).Max();
+
+            if (MaxYear is not null)
+                CurrentYear = MaxYear.Value;
+
             foreach (var network in Networks)
                 network.CurrentYear = CurrentYear;
 
@@ -500,7 +504,8 @@ public partial class MainViewModel : ViewModelBase
                 });
             });            
 
-            EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderBy(x => x));            
+            EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+            Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
 
             var StatusUpdate = new Timer(1000);
             StatusUpdate.Elapsed += async (s, e) =>
@@ -607,8 +612,8 @@ public partial class MainViewModel : ViewModelBase
                 
             });
 
-            EvolutionList = new ObservableCollection<Evolution>(EvolutionList.OrderBy(x => x));
-            Networks = new ObservableCollection<Network>(Networks.OrderBy(x => x.Evolution));
+            EvolutionList = new ObservableCollection<Evolution>(EvolutionList.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+            Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
 
             TrainingStarted = false;
         }       

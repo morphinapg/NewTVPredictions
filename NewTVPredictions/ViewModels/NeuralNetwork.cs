@@ -168,7 +168,10 @@ namespace NewTVPredictions.ViewModels
 
             //Preformat inputs with bias and weights
             for (int i = 0; i < CurrentInputSize; i++)
+            {
                 inputs[i] = (inputs[i] - bias[i]) / deviation[i];
+            }
+                
 
             //Run through every hidden layer
             double[] CurrentOutputs, CurrentInputs;
@@ -243,7 +246,10 @@ namespace NewTVPredictions.ViewModels
                 for (int i = 0; i < InputCount; i++)
                 {
                     InputAverage[InputType][i] = MutateValue(InputAverage[InputType][i]);
-                    InputDeviation[InputType][i] = Math.Abs(MutateValue(InputDeviation[InputType][i]));
+
+                    var dev = Math.Abs(MutateValue(InputDeviation[InputType][i]));
+                    if (dev > 0)
+                        InputDeviation[InputType][i] = dev;
                 }
 
                 for (int i = 0; i < OutputCount; i++)

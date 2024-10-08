@@ -11,6 +11,8 @@ using Avalonia.Threading;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
 using ColorTextBlock.Avalonia;
+using System.Reactive.Concurrency;
+using System.Reflection.Metadata.Ecma335;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -43,6 +45,9 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         [DataMember]
         public ObservableCollection<Show> Shows = new();
+
+        [DataMember]
+        public double? RatingsDev, ViewersDev;
 
         public Evolution? Evolution;
 
@@ -348,8 +353,21 @@ namespace NewTVPredictions.ViewModels
             double NextYear = now.Month < 9 ? now.Year : now.Year + 1;
             return Shows.Where(x => x.Year.HasValue && x.Ratings.Count > 0 && x.Viewers.Count > 0 && x.Renewed || x.Canceled).Select(x =>
             {
-                var Ratings = x.Ratings.Where(x => x is not null).Select(x => Math.Log10(Math.Max(x!.Value, 0.004))).ToList();
-                var Viewers = x.Viewers.Where(x => x is not null).Select(x => Math.Log10(Math.Max(x!.Value, 0.0004))).ToList();
+                List<double>
+                Ratings = x.Ratings.Select(x =>
+                {
+                    return x is null || x == 0 ?
+                        Math.Log10(0.004) :
+                        Math.Log10(x.Value);
+                }).ToList(),
+
+                Viewers = x.Viewers.Select(x =>
+                {
+                    return x is null || x == 0 ?
+                        Math.Log10(0.0004) :
+                        Math.Log10(x.Value);
+                }).ToList();
+
                 return new WeightedShow(x, 1 / (NextYear - x.Year!.Value), Ratings, Viewers);
             }).ToList();
         }
@@ -367,6 +385,198 @@ namespace NewTVPredictions.ViewModels
             return Shows.Select(x => x.Episodes).Distinct().Select(Total => Enumerable.Range(1, Total).Select(Current => new EpisodePair(Current, Total))).SelectMany(x => x).ToList();
         }
 
-        
+        /// <summary>
+        /// Get a dictionary describing the average rating (in Log10) per year
+        /// calculated with a weighted average
+        /// </summary>
+        public Dictionary<int, double> GetAverageRatingPerYear(int InputType)
+        {
+            var AverageRatings = new Dictionary<int, double>();
+
+            var Offsets = new List<double>();
+
+
+            foreach (var year in Shows.Select(x => x.Year).Distinct())
+            {
+                if (year is not null)
+                {
+                    var yearstats = Shows.Where(x => x.Year == year).Select(x =>
+                    {
+                        var Ratings = InputType == 0 ? x.Ratings : x.Viewers;
+                        double weight = 0, total = 0;
+                        int count = 0;
+
+                        foreach (var rating in Ratings)
+                        {
+                            count++;
+                            weight += count * count;
+
+                            var currentrating = rating is null || rating == 0 ?
+                                (InputType == 0 ? 0.004 : 0.0004) :
+                                rating.Value;
+
+                            currentrating = Math.Log10(currentrating);
+
+                            total += currentrating * count * count;
+                        }
+
+                        return total / weight;
+                    }).ToList();
+
+                    var avg = yearstats.Average();
+                    Offsets.AddRange(yearstats.Select(x => Math.Pow(x - avg, 2)));
+
+                    AverageRatings[year.Value] = avg;
+                }                
+            }
+
+            if (InputType == 0)
+                RatingsDev = Math.Sqrt(Offsets.Average());
+            else
+                ViewersDev = Math.Sqrt(Offsets.Average());
+
+            var Trend = new Dictionary<int, double>();
+            var Equation = GetSlopeAndIntercept(AverageRatings);
+            double
+                slope = Equation[0],
+                intercept = Equation[1];
+
+            foreach (var key in AverageRatings.Keys)
+                Trend[key] = slope * key + intercept;
+
+            if (!AverageRatings.Keys.Contains(CurrentApp.CurrentYear))
+                Trend[CurrentApp.CurrentYear] = slope * CurrentApp.CurrentYear + intercept;
+
+            return Trend;
+        }
+
+        /// <summary>
+        /// Get an array describing the average offset of each episode compared to the average season rating
+        /// </summary>
+        public double[] GetEpisodeOffsets(Dictionary<int, double> AverageRatings, int InputType)
+        {
+            var MaxEpisodes = Shows.Max(x => x.Episodes);
+            var EpisodeOffsets = new double[26];
+
+            for (int i = 0; i < MaxEpisodes; i++)
+            {
+                EpisodeOffsets[i] = Shows.Where(x => (InputType == 0 ? x.Ratings.Count : x.Viewers.Count) > i && x.Year is not null).Select(x =>
+                {
+                    var Ratings = InputType == 0 ? x.Ratings : x.Viewers;
+
+                    var currentrating = Ratings[i] is null || Ratings[i] == 0 ?
+                                (InputType == 0 ? 0.004 : 0.0004) :
+                                Ratings[i]!.Value;
+
+                    currentrating = Math.Log10(currentrating);
+
+                    return currentrating - AverageRatings[x.Year!.Value];
+                }).Average();
+            }
+
+            return EpisodeOffsets;
+        }
+
+        /// <summary>
+        /// This will
+        /// </summary>
+        /// <param name="AverageRatings">A dictionary of Average ratings per year (Log10)</param>
+        /// <param name="EpisodeOffsets">An array of average offset per episode compared to season average</param>
+        /// <param name="InputType">0 = Ratings, 1 = Viewers</param>
+        /// <returns></returns>
+        public double[] GetDeviations(Dictionary<int, double> AverageRatings, double[] EpisodeOffsets, int InputType)
+        {
+            var Deviations = new double[26];
+
+            for (int i = 0; i < 26; i++)
+            {
+                var matchedshows = Shows.Where(x => (InputType == 0 ? x.Ratings.Count : x.Viewers.Count) > i && x.Year.HasValue && AverageRatings.ContainsKey(x.Year.Value));
+
+                if (matchedshows.Any())
+                {
+                    Deviations[i] = Math.Sqrt(matchedshows.Select(x =>
+                    {
+                        var Ratings = InputType == 0 ? x.Ratings : x.Viewers;
+
+                        var currentrating = Ratings[i] is null || Ratings[i] == 0 ?
+                                    (InputType == 0 ? 0.004 : 0.0004) :
+                                    Ratings[i]!.Value;
+
+                        currentrating = Math.Log10(currentrating);
+
+                        return Math.Pow(currentrating - AverageRatings[x.Year!.Value], 2);
+                    }).Average());
+                }
+                else
+                    Deviations[i] = 1;
+            }
+
+            return Deviations;
+        }
+
+        /// <summary>
+        /// Calculates a trend line for the expected average rating per year
+        /// </summary>
+        /// <param name="AverageRatings">Dictionary of average ratings per year</param>
+        /// <param name="CurrentYear">The current TV season year</param>
+        /// <returns></returns>
+        double[] GetSlopeAndIntercept(Dictionary<int, double> AverageRatings)
+        {
+            int NextYear = CurrentApp.CurrentYear + 1;
+
+            double sumWeights = 0;
+            double sumX = 0;
+            double sumY = 0;
+            double sumXY = 0;
+            double sumX2 = 0;
+
+            foreach (var rating in AverageRatings)
+            {
+                double weight = 1.0 / (NextYear - rating.Key);
+                sumWeights += weight;
+                sumX += rating.Key * weight;
+                sumY += rating.Value * weight;
+                sumXY += rating.Key * rating.Value * weight;
+                sumX2 += rating.Key * rating.Key * weight;
+            }
+
+            double slope = (sumWeights * sumXY - sumX * sumY) / (sumWeights * sumX2 - sumX * sumX);
+            double intercept = (sumY - slope * sumX) / sumWeights;
+
+            return new double[] { slope, intercept };
+        }
+
+        /// <summary>
+        /// Projects an episode's rating, given a list of current episodes
+        /// </summary>
+        /// <param name="Episodes">Current episodes</param>
+        /// <param name="ProjectedEpisode">The calculated value</param>
+        /// <returns></returns>
+        public double GetProjectedRating(List<double> Episodes, int ProjectedEpisode)
+        {
+            double sumWeights = 0;
+            double sumX = 0;
+            double sumY = 0;
+            double sumXY = 0;
+            double sumX2 = 0;
+
+            for (int i = 0; i < Episodes.Count; i++)
+            {
+                int episode = i + 1;
+                double weight = episode * episode;
+                sumWeights += weight;
+                sumX += episode * weight;
+                sumY += Episodes[i] * weight;
+                sumXY += episode * Episodes[i] * weight;
+                sumX2 += episode * episode * weight;
+            }
+
+            double slope = (sumWeights * sumXY - sumX * sumY) / (sumWeights * sumX2 - sumX * sumX);
+            double intercept = (sumY - slope * sumX) / sumWeights;
+
+            double projectedRating = slope * ProjectedEpisode + intercept;
+
+            return projectedRating;
+        }
     }
 }

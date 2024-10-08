@@ -36,7 +36,33 @@ namespace NewTVPredictions.ViewModels
 
             // STEP 1 - ACCURACY TESTING //
             //First, we need to test every PredictionModel in every Evolution model for accuracy
-            Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x).Where(x => x.Accuracy is null), x => x.TestAccuracy(WeightedShows[x.Network]));            
+
+            //Prepare statistics for prediction use
+            var Stats = new ConcurrentDictionary<Network, PredictionStats>();
+
+            Parallel.ForEach(AllNetworks, x =>
+            {
+                ConcurrentDictionary<(Show, int), double>
+                    RatingsProjections = new(),
+                    ViewerProjections = new();
+
+                Dictionary<int, double>
+                    RatingsAverages = x.Network.GetAverageRatingPerYear(0),
+                    ViewerAverages = x.Network.GetAverageRatingPerYear(1);
+
+                double[]
+                    RatingsOffsets = x.Network.GetEpisodeOffsets(RatingsAverages, 0),
+                    ViewerOffsets = x.Network.GetEpisodeOffsets(ViewerAverages, 1);
+
+                Stats[x.Network] = new PredictionStats(RatingsProjections, ViewerProjections, RatingsAverages, ViewerAverages, RatingsOffsets, ViewerOffsets);
+            });
+
+
+            Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x).Where(x => x.Accuracy is null), x => x.TestAccuracy(Stats[x.Network], WeightedShows[x.Network]));
+            
+
+            //foreach (var x in AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x).Where(x => x.Accuracy is null))
+            //    x.TestAccuracy(Stats[x.Network], WeightedShows[x.Network]);
 
             // STEP 2 - SORTING //
             Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees), x => x.Sort());
@@ -52,7 +78,7 @@ namespace NewTVPredictions.ViewModels
             Parallel.ForEach(AllNetworks, x => Parents[x] = x.GetParents());
 
             Parallel.ForEach(AllNetworks.Select(z => Enumerable.Range(0, Evolution.NumberOfTrees).Select(x => Enumerable.Range(0, Evolution.NumberOfModels).Select(y => new {Evolution = z, x, y }))).SelectMany(x => x).SelectMany(x => x), model => model.Evolution.Breed(model.x, model.y, Parents[model.Evolution]));
-
+            
             // STEP 6 - MUTATION //
             var r = Random.Shared;
             Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x), x => x.MutateModel());

@@ -10,16 +10,14 @@
       <DataGrid.Columns>
         <DataGridTextColumn Header="Show Name" Binding="{Binding Name}"/>
         <DataGridTextColumn Header="Rating" Binding="{Binding CurrentRating, StringFormat={}{0:N2}}"/>
-        <DataGridTextColumn Header="Target" Binding="{Binding TargetRating, StringFormat={}{0:N2}}"/>
         <DataGridTextColumn Header="Viewers" Binding="{Binding CurrentViewersString}"/>
-        <DataGridTextColumn Header="Target" Binding="{Binding TargetViewersString}"/>
         <DataGridTextColumn Header="Performance" Binding="{Binding CurrentPerformance, StringFormat={}{0:P0}}"/>
         <DataGridTemplateColumn Header="Status">
           <DataTemplate x:DataType="vm:Show">
             <TextBlock Text="{Binding RenewalStatus}" Foreground="{Binding RenewalColor}" VerticalAlignment="Center"/>
           </DataTemplate>
         </DataGridTemplateColumn>
-        <!--<DataGridTextColumn Header="Odds" Binding="{Binding CurrentOdds, StringFormat={}{0:P0}}"/>-->
+        <DataGridTextColumn Header="Odds" Binding="{Binding CurrentOdds, StringFormat={}{0:P0}}"/>
       </DataGrid.Columns>
     </DataGrid>
   </Grid>

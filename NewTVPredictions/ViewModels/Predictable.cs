@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using MathNet.Numerics.Distributions;
 using System.Collections.Concurrent;
+using Markdown.Avalonia.Plugins;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -216,11 +217,8 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         /// <param name="outputs">Output of GetPerformanceAndThreshold</param>
         /// <returns>Percentage odds of renewal</returns>
-        public double GetOdds(double[] outputs, EpisodePair Episodes)
+        public double GetOdds(double ShowPerformance, double ShowThreshold, EpisodePair Episodes)
         {
-            var ShowPerformance = outputs[0];
-            var ShowThreshold = outputs[1];
-
             var Normal = new Normal(ShowThreshold, MarginOfError[Episodes]);
 
             return Normal.CumulativeDistribution(ShowPerformance);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,4 +14,13 @@ namespace NewTVPredictions.ViewModels
     public record EpisodePair(int Current, int Total);
 
     public record PredictionContainer(double CurrentRating, double CurrentViewers, double CurrentPerformance, double TargetRating, double TargetViewers, double CurrentOdds);
+
+    public record PredictionStats(
+        ConcurrentDictionary<(Show, int), double> RatingsProjections,
+        ConcurrentDictionary<(Show, int), double> ViewerProjections,
+        Dictionary<int, double> RatingsAverages,
+        Dictionary<int, double> ViewerAverages,
+        double[] RatingsOffsets,
+        double[] ViewerOffsets
+        );
 }
