@@ -393,21 +393,27 @@ namespace NewTVPredictions.ViewModels
         {
             var AverageRatings = new Dictionary<int, double>();
 
-            var Offsets = new List<double>();
+            var Offsets = new List<ShowAvg>();
+
+            double NextYear = CurrentApp.CurrentYear + 1;
 
 
             foreach (var year in Shows.Select(x => x.Year).Distinct())
             {
                 if (year is not null)
                 {
-                    var yearstats = Shows.Where(x => x.Year == year).Select(x =>
+                    double totalratings = 0;
+                    int showcount = 0;
+
+                    foreach (var x in Shows.Where(x => x.Year == year))
                     {
                         var Ratings = InputType == 0 ? x.Ratings : x.Viewers;
                         double weight = 0, total = 0;
                         int count = 0;
+                        showcount++;
 
                         foreach (var rating in Ratings)
-                        {
+                        {                           
                             count++;
                             weight += count * count;
 
@@ -420,20 +426,20 @@ namespace NewTVPredictions.ViewModels
                             total += currentrating * count * count;
                         }
 
-                        return total / weight;
-                    }).ToList();
+                        var showavg = total / weight;
 
-                    var avg = yearstats.Average();
-                    Offsets.AddRange(yearstats.Select(x => Math.Pow(x - avg, 2)));
+                        totalratings += showavg;
+
+                        Offsets.Add(new ShowAvg(showavg, year.Value, 1 / (NextYear - year.Value)));
+                    }
+
+                    var avg = totalratings / showcount;
 
                     AverageRatings[year.Value] = avg;
                 }                
             }
 
-            if (InputType == 0)
-                RatingsDev = Math.Sqrt(Offsets.Average());
-            else
-                ViewersDev = Math.Sqrt(Offsets.Average());
+            
 
             var Trend = new Dictionary<int, double>();
             var Equation = GetSlopeAndIntercept(AverageRatings);
@@ -446,6 +452,13 @@ namespace NewTVPredictions.ViewModels
 
             if (!AverageRatings.Keys.Contains(CurrentApp.CurrentYear))
                 Trend[CurrentApp.CurrentYear] = slope * CurrentApp.CurrentYear + intercept;
+
+            var dev = Math.Sqrt(Offsets.Sum(x => Math.Pow(x.avg - Trend[x.year], 2) * x.weight) / Offsets.Sum(x => x.weight));
+
+            if (InputType == 0)
+                RatingsDev = dev;
+            else
+                ViewersDev = dev;
 
             return Trend;
         }
@@ -554,11 +567,8 @@ namespace NewTVPredictions.ViewModels
         /// <returns></returns>
         public double GetProjectedRating(List<double> Episodes, int ProjectedEpisode)
         {
-            double sumWeights = 0;
-            double sumX = 0;
-            double sumY = 0;
-            double sumXY = 0;
-            double sumX2 = 0;
+            double sumWeights = 0, sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                
 
             for (int i = 0; i < Episodes.Count; i++)
             {
@@ -571,8 +581,16 @@ namespace NewTVPredictions.ViewModels
                 sumX2 += episode * episode * weight;
             }
 
-            double slope = (sumWeights * sumXY - sumX * sumY) / (sumWeights * sumX2 - sumX * sumX);
-            double intercept = (sumY - slope * sumX) / sumWeights;
+            
+            double 
+                slope = (sumWeights * sumXY - sumX * sumY) / (sumWeights * sumX2 - sumX * sumX),
+                intercept = (sumY - slope * sumX) / sumWeights;
+
+            if (Episodes.Count == 2)
+            {
+                slope = 0;
+                intercept = sumY / sumWeights;
+            }
 
             double projectedRating = slope * ProjectedEpisode + intercept;
 

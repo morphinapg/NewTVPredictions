@@ -8,6 +8,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using MathNet.Numerics.Distributions;
 using System.Collections.Concurrent;
 using Markdown.Avalonia.Plugins;
+using System.Transactions;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -237,6 +238,9 @@ namespace NewTVPredictions.ViewModels
                 if (y is null)
                     return false;
 
+                if (y.Error.HasValue && double.IsNaN(y.Error.Value))
+                    return false;
+
                 if (x.Duplicate == y.Duplicate)
                     return x.Accuracy < y.Accuracy || (x.Accuracy == y.Accuracy && x.Error > y.Error);
                 else if (x.Duplicate && !y.Duplicate)
@@ -250,12 +254,12 @@ namespace NewTVPredictions.ViewModels
 
         public static bool operator >(Predictable x, Predictable y)
         {
-            
-
             if (x is not null)
             {
-
                 if (y is null)
+                    return true;
+
+                if (y.Error.HasValue && double.IsNaN(y.Error.Value))
                     return true;
 
                 if (x.Duplicate == y.Duplicate)
@@ -276,6 +280,8 @@ namespace NewTVPredictions.ViewModels
         public int CompareTo(Predictable? other)
         {
             if (other is null) return 1;
+
+            if (other.Error.HasValue && double.IsNaN(other.Error.Value)) return 1;
 
             if (other.Duplicate == Duplicate)
             {

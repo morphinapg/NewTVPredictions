@@ -403,9 +403,9 @@ namespace NewTVPredictions.ViewModels
 
             double[] outputs;
             double RatingsPerformance, ViewersPerformance, RatingsThreshold, ViewersThreshold, Blend, BlendedPerformance, BlendedThreshold;//, RatingsMax, RatingsMin, ViewersMin, ViewersMax, RatingsRange, ViewersRange, RatingsError, ViewersError, RatingsAvg, ViewersAvg;
-            double RatingsProjection, ViewersProjection, ExpectedRatings, ExpectedViewers;
+            double RatingsProjection, ViewersProjection, ExpectedRatings, ExpectedViewers, RatingAvgTotal = 0, RatingDevTotal = 0, ViewerAvgTotal = 0, ViewerDevTotal = 0, StatWeights = 0;
             int Episode;
-            List<double> Ratings, Viewers, ShowRatings, ShowViewers, CalculatedRatings = new(), CalculatedViewers = new();
+            List<double> Ratings, Viewers, ShowRatings, ShowViewers;
             (Show, int) key;
 
             foreach (var Show in WeightedShows)
@@ -458,8 +458,14 @@ namespace NewTVPredictions.ViewModels
                     RatingsPerformance = RatingsProjection + outputs[0];
                     ViewersPerformance = ViewersProjection + outputs[1];
 
-                    CalculatedRatings.Add(RatingsPerformance);
-                    CalculatedViewers.Add(ViewersPerformance);
+                    //CalculatedRatings.Add(new StatsContainer(Math.Pow(RatingsPerformance - RatingsAverages[year], 2), 1 / (NextYear - year)));
+                    //CalculatedViewers.Add(new StatsContainer(Math.Pow(ViewersPerformance - ViewerAverages[year], 2), 1 / (NextYear - year)));
+
+                    RatingAvgTotal += RatingsPerformance * Show.Weight;
+                    ViewerAvgTotal += ViewersPerformance * Show.Weight;
+                    RatingDevTotal += Math.Pow(RatingsPerformance - RatingsAverages[year], 2) * Show.Weight;
+                    ViewerDevTotal += Math.Pow(ViewersPerformance - ViewerAverages[year], 2) * Show.Weight;
+                    StatWeights += Show.Weight;
 
 
                     RatingsThreshold = outputs[2];
@@ -530,18 +536,15 @@ namespace NewTVPredictions.ViewModels
                 }
             }
 
-            var avg = CalculatedRatings.Average();
-            RatingsAvg = avg;
-            RatingsDev = Math.Sqrt(CalculatedRatings.Select(x => Math.Pow(x - avg, 2)).Average());
 
-            avg = CalculatedViewers.Average();
-            ViewersAvg = avg;
-            ViewersDev = Math.Sqrt(CalculatedViewers.Select(x => Math.Pow(x - avg, 2)).Average());
+            RatingsAvg = RatingAvgTotal / StatWeights;
+            RatingsDev = Math.Sqrt(RatingDevTotal / StatWeights);
+
+            ViewersAvg = ViewerAvgTotal / StatWeights;
+            ViewersDev = Math.Sqrt(ViewerDevTotal / StatWeights);
 
             Accuracy = AccuracyTotal / WeightTotal;
             Error = ErrorTotal / WeightTotal;
-
-            
         }
 
         /// <summary>

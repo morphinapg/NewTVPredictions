@@ -11,6 +11,8 @@ using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
 using Avalonia.Media;
+using System.Runtime.CompilerServices;
+using System.Reflection;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -371,15 +373,32 @@ namespace NewTVPredictions.ViewModels
             Year = other.Year;
             Canceled = other.Canceled;
             Renewed = other.Renewed;
+            CurrentRating = other.CurrentRating;
+            CurrentViewers = other.CurrentViewers;
+            OldRating = other.OldRating;
+            OldViewers = other.OldViewers;
+            CurrentOdds = other.CurrentOdds;
+            OldOdds = other.OldOdds;
+            CurrentPerformance = other.CurrentPerformance;
+            OldPerformance = other.OldPerformance;
+            TargetRating = other.TargetRating;
+            TargetViewers = other.TargetViewers;
+
             if (other._renewalStatus is not null)
                 RenewalStatus = other.RenewalStatus;
+
+            foreach (var rating in other.Ratings)
+                Ratings.Add(rating);
+
+            foreach (var viewer in other.Viewers)
+                Viewers.Add(viewer);
 
             RatingsContainer.Add(new RatingsInfo(Ratings, "Ratings"));
             RatingsContainer.Add(new RatingsInfo(Viewers, "Viewers"));
 
             if (this != other)
             {
-                MessageBoxManager.GetMessageBoxStandard("Error", "Please update the copy constructor to support Property '" + MissingProperty + "'", ButtonEnum.Ok).ShowAsync();
+                MessageBoxManager.GetMessageBoxStandard("Error", "Please update the copy constructor to support '" + MissingMember + "'", ButtonEnum.Ok).ShowAsync();
             }
         }
 
@@ -451,7 +470,7 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        string? MissingProperty;
+        string? MissingMember;
 
         /// <summary>
         /// Equivalency check, mainly used to verify the copy constructor handles every property
@@ -464,48 +483,51 @@ namespace NewTVPredictions.ViewModels
             if (x is null || y is null) return false;
             if (ReferenceEquals(x, y)) return true;
 
-            var properties = x.GetType().GetProperties();
-            foreach ( var property in properties )
-            {
-                if (property.Name != "RatingsContainer" && property.Name !="MissingProperty")
-                {
-                    var value1 = property.GetValue(x);
-                    var value2 = property.GetValue(y);
+            // Combine properties and fields into a single collection of MemberInfo
+            var members = x.GetType().GetProperties().Where(x => x.GetSetMethod() is not null)
+                           .Cast<MemberInfo>()
+                           .Concat(x.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic));
 
-                    if (property.GetType().IsValueType)
+            foreach (var member in members)
+            {
+                if (member.Name != "RatingsContainer" && member.Name != "_ratingsContainer" && member.Name != "MissingProperty")
+                {
+                    var value1 = member is PropertyInfo prop1 ? prop1.GetValue(x) : ((FieldInfo)member).GetValue(x);
+                    var value2 = member is PropertyInfo prop2 ? prop2.GetValue(y) : ((FieldInfo)member).GetValue(y);
+                    var type = member is PropertyInfo prop3 ? prop3.PropertyType : ((FieldInfo)member).FieldType;
+
+                    if (type.IsValueType) // Check for value type
                     {
-                        if (value1 != value2)
+                        if (!Equals(value1, value2))
                         {
-                            x.MissingProperty = property.Name;
+                            x.MissingMember = member.Name;
                             return false;
                         }
-                            
                     }
-                    else
+                    else // reference type
                     {
                         if (!ReferenceEquals(value1, value2))
                         {
+                            var enumerable1 = value1 as IEnumerable;
+                            var enumerable2 = value2 as IEnumerable;
 
-                            if (property.PropertyType is IEnumerable || (property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(ObservableCollection<>)))
+                            if (enumerable1 is not null && enumerable2 is not null)
                             {
-                                var enumerable1 = value1 as IEnumerable;
-                                var enumerable2 = value2 as IEnumerable;
-
-                                if (enumerable1 is not null && enumerable2 is not null && !enumerable1.Cast<object>().SequenceEqual(enumerable2.Cast<object>()))
+                                if (!enumerable1.Cast<object>().SequenceEqual(enumerable2.Cast<object>()))
                                 {
-                                    x.MissingProperty = property.Name;
-                                    return false; 
+                                    x.MissingMember = member.Name;
+                                    return false;
                                 }
                             }
                             else if (value1 is not null && value2 is not null && !value1.Equals(value2))
                             {
-                                MessageBoxManager.GetMessageBoxStandard("Error", "Property '" + property.Name + "' requires custom code to check equivalency.", ButtonEnum.Ok).ShowAsync();
-
+                                x.MissingMember = member.Name;
+                                MessageBoxManager.GetMessageBoxStandard("Error", "'" + member.Name + "' requires custom code to check equivalency.", ButtonEnum.Ok).ShowAsync();
                                 return false;
                             }
                         }
                     }
-                }                
+                }
             }
 
             return true;

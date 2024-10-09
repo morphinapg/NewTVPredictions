@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
@@ -41,6 +42,7 @@ namespace NewTVPredictions.ViewModels
         /// <param name="outputbias">average value of what the outputs should be, with a list for each input type</param>
         public NeuralNetwork(List<double[]> average, List<double[]> deviation, List<double[]> outputbias)
         {
+
             if (average.Count == 0 || deviation.Count == 0)
                 throw new Exception("Average and/or Deviation values missing!");
             if (average.Count != deviation.Count)
@@ -193,7 +195,10 @@ namespace NewTVPredictions.ViewModels
             //Calculate output layer results
             CurrentOutputs = new double[OutputCount];
             for (int i = 0; i < OutputCount; i++)
+            {
                 CurrentOutputs[i] = OutputLayer[i].GetOutput(CurrentInputs, true) + OutputBias[InputType][i];
+            }
+                
 
             return CurrentOutputs;
         }
@@ -283,21 +288,21 @@ namespace NewTVPredictions.ViewModels
 
             for (int i = 0; i < InputTypes; i++)
             {
-                var bias = new double[InputCount];
-                var weight = new double[InputCount];                
+                var avg = new double[InputCount];
+                var dev = new double[InputCount];                
 
                 for (int j = 0; j < InputCount; j++)
                 {
-                    bias[j] = Breed(x.InputAverage[i][j], y.InputAverage[i][j]);
-                    weight[j] = Breed(x.InputAverage[i][j], y.InputAverage[i][j]);
+                    avg[j] = Breed(x.InputAverage[i][j], y.InputAverage[i][j]);
+                    dev[j] = Breed(x.InputDeviation[i][j], y.InputDeviation[i][j]);
                 }
 
                 var outputbias = new double[OutputCount];
                 for (int j = 0; j < OutputCount; j++)
                     outputbias[j] = Breed(x.OutputBias[i][j], y.OutputBias[i][j]);
 
-                InputAverage.Add(bias);
-                InputDeviation.Add(weight);
+                InputAverage.Add(avg);
+                InputDeviation.Add(dev);
                 OutputBias.Add(outputbias);
             }
 

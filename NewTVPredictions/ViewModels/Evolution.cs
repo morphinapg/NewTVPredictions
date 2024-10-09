@@ -145,7 +145,7 @@ namespace NewTVPredictions.ViewModels
         public void Crossover()
         {
             ResetSecondary = false;
-            var ModelToBeat = FamilyTrees[0].Last();
+            var ModelToBeat = FamilyTrees[0][1];
             var ModelsToAdd = FamilyTrees[1].Where(x => x > ModelToBeat);
             FamilyTrees[0].AddRange(ModelsToAdd);
             FamilyTrees[0].Sort();
@@ -340,6 +340,12 @@ namespace NewTVPredictions.ViewModels
 
                     TargetViewers = TopModel1.GetRatingsPerformance(TargetViewers, ViewerAverages[year], 1);
 
+                    double
+                        CurrentPerformance1 = CurrentRating - TargetRating,
+                        CurrentPerformance2 = CurrentViewers - TargetViewers,
+                        CurrentPerformance = CurrentPerformance1 * Blend + CurrentPerformance2 * (1 - Blend);
+
+
                     BlendedPerformance = CurrentRating * Blend + CurrentViewers * (1 - Blend);
                     BlendedThreshold = TargetRating * Blend + TargetViewers * (1 - Blend);
 
@@ -350,8 +356,8 @@ namespace NewTVPredictions.ViewModels
                     TargetViewers = Math.Pow(10,TargetViewers);
                     BlendedPerformance = Math.Pow(10,BlendedPerformance);
                     BlendedThreshold = Math.Pow(10, BlendedThreshold);
-                    
-                    double CurrentPerformance = BlendedPerformance / BlendedThreshold;
+
+                    CurrentPerformance = Math.Pow(10, CurrentPerformance);
 
                     if (parallel)
                     {

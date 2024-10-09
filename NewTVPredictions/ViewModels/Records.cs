@@ -23,4 +23,6 @@ namespace NewTVPredictions.ViewModels
         double[] RatingsOffsets,
         double[] ViewerOffsets
         );
+
+    public record ShowAvg(double avg, int year, double weight);
 }
