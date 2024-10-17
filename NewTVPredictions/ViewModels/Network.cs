@@ -255,9 +255,9 @@ namespace NewTVPredictions.ViewModels
         }
 
         //Update FilteredShows and AlphabeticalShows by the current year
-        async void UpdateFilter()                                                                                                   
+        public async void UpdateFilter()                                                                                                   
         {
-            var tmpShows = CurrentYear is null ? Shows.AsParallel() : Shows.AsParallel().Where(x => x.Year == CurrentYear);
+            var tmpShows = (CurrentYear is null ? Shows.AsParallel() : Shows.AsParallel().Where(x => x.Year == CurrentYear)).OrderByDescending(x => x.CurrentPerformance).ThenBy(x => x.Name).ThenBy(x => x.Season);
             var alphabetical = tmpShows.OrderBy(x => x.Name).ThenBy(x => x.Season);
 
             await Dispatcher.UIThread.InvokeAsync( () =>
@@ -573,7 +573,7 @@ namespace NewTVPredictions.ViewModels
             for (int i = 0; i < Episodes.Count; i++)
             {
                 int episode = i + 1;
-                double weight = episode * episode;
+                double weight = episode;
                 sumWeights += weight;
                 sumX += episode * weight;
                 sumY += Episodes[i] * weight;

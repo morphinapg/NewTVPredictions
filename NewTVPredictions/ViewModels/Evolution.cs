@@ -136,7 +136,7 @@ namespace NewTVPredictions.ViewModels
         }
 
         public string Name => Network.Name;
-        bool ResetSecondary = false;
+        public bool ResetSecondary = false;
 
         /// <summary>
         /// Whenever a model from the second branch is better than the worst model from the first, 
@@ -329,7 +329,8 @@ namespace NewTVPredictions.ViewModels
                         Blend = outputs[4],
                         BlendedPerformance = CurrentRating * Blend + CurrentViewers * (1 - Blend),
                         BlendedThreshold = TargetRating * Blend + TargetViewers * (1 - Blend),
-                        CurrentOdds = 0.5;
+                        CurrentOdds = GetOdds(BlendedPerformance, BlendedThreshold, new EpisodePair(x.CurrentEpisodes, x.Episodes)),
+                        CurrentPerformance = TopModel1.GetCurrentPerformance(BlendedPerformance - BlendedThreshold, Blend);
 
 
                     CurrentRating = TopModel1.GetRatingsPerformance(CurrentRating, RatingsAverages[year], 0);
@@ -340,24 +341,25 @@ namespace NewTVPredictions.ViewModels
 
                     TargetViewers = TopModel1.GetRatingsPerformance(TargetViewers, ViewerAverages[year], 1);
 
-                    double
-                        CurrentPerformance1 = CurrentRating - TargetRating,
-                        CurrentPerformance2 = CurrentViewers - TargetViewers,
-                        CurrentPerformance = CurrentPerformance1 * Blend + CurrentPerformance2 * (1 - Blend);
+                    //double
+                    //    CurrentPerformance1 = CurrentRating - TargetRating,
+                    //    CurrentPerformance2 = CurrentViewers - TargetViewers,
+                    //    CurrentPerformance = CurrentPerformance1 * Blend + CurrentPerformance2 * (1 - Blend);
 
 
-                    BlendedPerformance = CurrentRating * Blend + CurrentViewers * (1 - Blend);
-                    BlendedThreshold = TargetRating * Blend + TargetViewers * (1 - Blend);
+                    //BlendedPerformance = CurrentRating * Blend + CurrentViewers * (1 - Blend);
+                    //BlendedThreshold = TargetRating * Blend + TargetViewers * (1 - Blend);
 
 
                     CurrentRating = Math.Pow(10,CurrentRating);
                     CurrentViewers = Math.Pow(10,CurrentViewers);
                     TargetRating = Math.Pow(10,TargetRating);
                     TargetViewers = Math.Pow(10,TargetViewers);
-                    BlendedPerformance = Math.Pow(10,BlendedPerformance);
-                    BlendedThreshold = Math.Pow(10, BlendedThreshold);
+                    //BlendedPerformance = Math.Pow(10,BlendedPerformance);
+                    //BlendedThreshold = Math.Pow(10, BlendedThreshold);
 
-                    CurrentPerformance = Math.Pow(10, CurrentPerformance);
+                    //CurrentPerformance = Math.Pow(10, CurrentPerformance);
+
 
                     if (parallel)
                     {
@@ -384,6 +386,28 @@ namespace NewTVPredictions.ViewModels
                         Show.CurrentOdds = Prediction.CurrentOdds;
                     }
             }            
+        }
+
+        /// <summary>
+        /// Calculate a margin of error for a given EpisodePair (Current/Total episodes)
+        /// </summary>
+        /// <param name="WeightedShows">All shows from the network marked as renewed or canceled, weighted by year</param>
+        /// <param name="Stats">A collection of statistics necessary for predictions</param>
+        /// <param name="CurrentEpisode">the current episode # being tested</param>
+        /// <param name="TotalEpisodes">the total number of episodes for a show</param>
+        public void CalculateMarginOfError(IEnumerable<WeightedShow> WeightedShows, PredictionStats Stats, int CurrentEpisode, int TotalEpisodes)
+        {
+            if (TopModel1 is not null)
+            {
+                var Episodes = new EpisodePair(CurrentEpisode, TotalEpisodes);
+
+                var Margin = TestAccuracy(TopModel1, Stats, WeightedShows, true, CurrentEpisode, TotalEpisodes)[0];
+
+                if (double.IsNaN(Margin) || double.IsInfinity(Margin) || Margin == 0)
+                    Margin = 100;
+
+                MarginOfError[Episodes] = Margin;
+            }         
         }
     }
 }

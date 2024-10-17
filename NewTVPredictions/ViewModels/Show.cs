@@ -49,6 +49,8 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        public string NameWithSeason => Parent is not null && Parent.Shows.Where(x => x.Name == Name && x.Year == Year).Count() > 1 ? Name + " (Season " + Season + ")" : Name;
+
         [DataMember]
         int _season = 1;
         /// <summary>
@@ -214,7 +216,7 @@ namespace NewTVPredictions.ViewModels
                 if (CurrentViewers is null)
                     return null;
                 else if (CurrentViewers >= 1)
-                    return Math.Round(CurrentViewers.Value, 2) + "M";
+                    return CurrentViewers.Value.ToString("N2") + "M";
                 else
                     return Math.Round(CurrentViewers.Value, 3) * 1000 + "K";
             }
@@ -242,7 +244,7 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         public double? CurrentOdds
         {
-            get => _currentOdds;
+            get => string.IsNullOrWhiteSpace(RenewalStatus) ? _currentOdds : null;
             set
             {
                 _currentOdds = value;

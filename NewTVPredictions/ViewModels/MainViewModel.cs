@@ -244,7 +244,10 @@ public partial class MainViewModel : ViewModelBase
         {
             case PREDICTIONS:
                 if (SelectedNetwork is not null && SelectedNetwork.Evolution is not null)
+                {
                     SelectedNetwork.Evolution.GeneratePredictions(CurrentYear, CurrentPredictions is null);
+                    SelectedNetwork.UpdateFilter();
+                }                    
 
                 if (CurrentPredictions is null)
                     CurrentPredictions = new Predictions();
@@ -599,14 +602,22 @@ public partial class MainViewModel : ViewModelBase
             TrainingStarted = true;
             CancelTraining = false;
 
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 Parallel.ForEach(Networks.SelectMany(x => x.Shows), x => x.CurrentOdds = null);
+
+                var UIUpdateTimer = new Timer(100);
+                UIUpdateTimer.Elapsed += UIUpdateTimer_Elapsed;
+                UIUpdateTimer.Start();
 
                 while (!CancelTraining)
                 {
                     Controller.NextGeneration();
                 }
+
+                UIUpdateTimer.Stop();
+                UIUpdateTimer.Elapsed -= UIUpdateTimer_Elapsed;
+                await UpdateAverages();
 
                 Controller.UpdateMargins();
                 
@@ -617,5 +628,27 @@ public partial class MainViewModel : ViewModelBase
 
             TrainingStarted = false;
         }       
+    }
+
+    private async void UIUpdateTimer_Elapsed(object? sender, ElapsedEventArgs e)
+    {
+        await UpdateAverages();
+    }
+
+    async Task UpdateAverages()
+    {
+        var needsupdate = EvolutionList.Where(x => x.TopModelChanged);
+
+        if (needsupdate.Any())
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                foreach (var evolution in needsupdate)
+                {
+                    evolution.UpdateAccuracy();
+                    evolution.TopModelChanged = false;
+                }
+            });
+        }
     }
 }

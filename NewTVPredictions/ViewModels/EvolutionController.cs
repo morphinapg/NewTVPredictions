@@ -15,6 +15,7 @@ namespace NewTVPredictions.ViewModels
         public List<Evolution> AllNetworks;
         public ConcurrentDictionary<Network, IEnumerable<WeightedShow>> WeightedShows = new();
         public ConcurrentDictionary<Predictable, IEnumerable<EpisodePair>> EpisodePairs = new();
+        public ConcurrentDictionary<Network, PredictionStats> Stats = new();
         public bool UpdateAccuacy = true;
         //double Peak;
 
@@ -25,26 +26,11 @@ namespace NewTVPredictions.ViewModels
             {
                 WeightedShows[x.Network] = x.GetWeightedShows();
                 EpisodePairs[x] = x.Network.GetEpisodePairs().AsParallel();
-            });
+                x.TopModelChanged = false;
 
-            //Peak = Math.Log10(Evolution.NumberOfModels + 1);
-        }
-
-        public void NextGeneration()
-        {
-            Parallel.ForEach(AllNetworks, x => x.TopModelChanged = false);
-
-            // STEP 1 - ACCURACY TESTING //
-            //First, we need to test every PredictionModel in every Evolution model for accuracy
-
-            //Prepare statistics for prediction use
-            var Stats = new ConcurrentDictionary<Network, PredictionStats>();
-
-            Parallel.ForEach(AllNetworks, x =>
-            {
                 ConcurrentDictionary<(Show, int), double>
-                    RatingsProjections = new(),
-                    ViewerProjections = new();
+                   RatingsProjections = new(),
+                   ViewerProjections = new();
 
                 Dictionary<int, double>
                     RatingsAverages = x.Network.GetAverageRatingPerYear(0),
@@ -57,6 +43,14 @@ namespace NewTVPredictions.ViewModels
                 Stats[x.Network] = new PredictionStats(RatingsProjections, ViewerProjections, RatingsAverages, ViewerAverages, RatingsOffsets, ViewerOffsets);
             });
 
+            //Reset secondary branch for each Evolution model
+            Parallel.ForEach(AllNetworks.Select(x => Enumerable.Range(0, Evolution.NumberOfModels).Select(i => new { Model = x, Index = i })).SelectMany(x => x), x => x.Model.FamilyTrees[1][x.Index] = new PredictionModel(x.Model.Network));
+        }
+
+        public void NextGeneration()
+        {
+            // STEP 1 - ACCURACY TESTING //
+            //First, we need to test every PredictionModel in every Evolution model for accuracy
 
             Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x).Where(x => x.Accuracy is null), x => x.TestAccuracy(Stats[x.Network], WeightedShows[x.Network]));
             
@@ -83,16 +77,13 @@ namespace NewTVPredictions.ViewModels
             var r = Random.Shared;
             Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x), x => x.MutateModel());
             Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).Where(x => !x.Where(y => y.IsMutated).Any()), x => x[r.Next(Evolution.NumberOfModels)].IncreaseMutationRate());
-
-            // STEP 7 - UPDATE EVOLUTION ACCURACY, IF TOP MODELS CHANGED //
-            //these steps should only run after 100ms has passed, to avoid updating the UI too often
-
-            Parallel.ForEach(AllNetworks.Where(x => x.TopModelChanged), x => x.UpdateAccuracy());
         }
 
         public void UpdateMargins()
         {
-            //Add code to update the margin of error
+            var EpisodePairs = Enumerable.Range(1, 26).Select(TotalEpisodes => Enumerable.Range(1, TotalEpisodes).Select(CurrentEpisode => new { CurrentEpisode, TotalEpisodes })).SelectMany(x => x);
+
+            Parallel.ForEach( AllNetworks.Select(Evolution => EpisodePairs.Select(x => new { Evolution, x.CurrentEpisode, x.TotalEpisodes })).SelectMany(x => x), x => x.Evolution.CalculateMarginOfError(WeightedShows[x.Evolution.Network], Stats[x.Evolution.Network],x.CurrentEpisode, x.TotalEpisodes));
         }
     }
 }

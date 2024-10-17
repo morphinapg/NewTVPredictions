@@ -57,6 +57,7 @@ namespace NewTVPredictions.ViewModels
         public Network Network;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
+
         /// <summary>
         /// Calculate the Margin of Error for these prediction results
         /// </summary>
@@ -184,6 +185,7 @@ namespace NewTVPredictions.ViewModels
                     return CorrectMargin;
 
             }
+
 
             return (IncorrectMargin * IncorrectTotal + CorrectMargin * CorrectTotal) / (IncorrectTotal + CorrectTotal);
         }
@@ -321,6 +323,186 @@ namespace NewTVPredictions.ViewModels
                 return true;
             else
                 return false;
+        }
+
+        public double[] TestAccuracy(PredictionModel Model, PredictionStats Stats, IEnumerable<WeightedShow> WeightedShows, bool CalculateMargin = false, int CurrentEpisode = 0, int TotalEpisodes = 26)
+        {
+            ConcurrentDictionary<(Show, int), double>
+                RatingsProjections = Stats.RatingsProjections,
+                ViewerProjections = Stats.ViewerProjections;
+
+            Dictionary<int, double>
+                RatingsAverages = Stats.RatingsAverages,
+                ViewerAverages = Stats.ViewerAverages;
+
+            double[]
+                RatingsOffsets = Stats.RatingsOffsets,
+                ViewerOffsets = Stats.ViewerOffsets;
+
+            var AllEpisodeCounts = WeightedShows.Select(x => x.Show.Episodes).Distinct().ToList();
+
+            double
+                WeightTotal = 0,
+                ErrorTotal = 0,
+                AccuracyTotal = 0;
+
+            double[] outputs;
+            double RatingsPerformance, ViewersPerformance, RatingsThreshold, ViewersThreshold, Blend, BlendedPerformance, BlendedThreshold;//, RatingsMax, RatingsMin, ViewersMin, ViewersMax, RatingsRange, ViewersRange, RatingsError, ViewersError, RatingsAvg, ViewersAvg;
+            double RatingsProjection, ViewersProjection, ExpectedRatings, ExpectedViewers, RatingAvgTotal = 0, RatingDevTotal = 0, ViewerAvgTotal = 0, ViewerDevTotal = 0, StatWeights = 0, difference = 0;
+            int Episode;
+            List<double> Ratings, Viewers, ShowRatings, ShowViewers;
+            (Show, int) key;
+
+            double
+                Lowest = CalculateMargin ? (CurrentEpisode - 1.0) / TotalEpisodes : 0,
+                Highest = CalculateMargin ? (CurrentEpisode + 1.0) / TotalEpisodes : 2;
+
+            List<StatsContainer>
+                Correct = new(),
+                Incorrect = new();
+
+            foreach (var Show in WeightedShows)
+            {
+                ShowRatings = Show.Ratings;
+                ShowViewers = Show.Viewers;
+
+                ExpectedRatings = Network.GetProjectedRating(RatingsOffsets.Take(Show.Show.Episodes).ToList(), Show.Show.Episodes);
+                ExpectedViewers = Network.GetProjectedRating(ViewerOffsets.Take(Show.Show.Episodes).ToList(), Show.Show.Episodes);
+
+                //for (int i = 0; i < Show.Show.CurrentEpisodes; i++)
+                foreach (var i in Enumerable.Range(1, Show.Show.CurrentEpisodes).Where(x => (double)x / Show.Show.Episodes > Lowest && (double)x / Show.Show.Episodes < Highest).Select(x => x-1))
+                {
+                    WeightTotal += Show.Weight * 2;
+
+                    var year = Show.Show.Year.HasValue ? Show.Show.Year.Value : CurrentApp.CurrentYear;
+
+                    Episode = i + 1;
+                    Ratings = ShowRatings.Take(Episode).Select((x, i) => x - RatingsAverages[year] - RatingsOffsets[i]).ToList();
+                    Viewers = ShowViewers.Take(Episode).Select((x, i) => x - ViewerAverages[year] - ViewerOffsets[i]).ToList();
+
+                    //Get output data
+                    outputs = Model.GetOutputs(Show.Show, Episode, Ratings, Viewers);
+
+                    //check if current show has been projected before                   
+
+                    key = (Show.Show, i);
+
+                    if (RatingsProjections.ContainsKey(key))
+                        RatingsProjection = RatingsProjections[key];
+                    else
+                    {
+                        RatingsProjection = Ratings.Count > 1 ? Network.GetProjectedRating(Ratings, Show.Show.Episodes) : Ratings[0] + (ExpectedRatings - RatingsOffsets[0]);
+                        RatingsProjections[key] = RatingsProjection;
+                    }
+
+                    if (ViewerProjections.ContainsKey(key))
+                        ViewersProjection = ViewerProjections[key];
+                    else
+                    {
+                        ViewersProjection = Viewers.Count > 1 ? Network.GetProjectedRating(Viewers, Show.Show.Episodes) : Viewers[0] + (ExpectedViewers - ViewerOffsets[0]);
+                        ViewerProjections[key] = ViewersProjection;
+                    }
+
+                    RatingsPerformance = RatingsProjection + outputs[0];
+                    ViewersPerformance = ViewersProjection + outputs[1];
+
+                    RatingAvgTotal += RatingsPerformance * Show.Weight;
+                    ViewerAvgTotal += ViewersPerformance * Show.Weight;
+                    RatingDevTotal += Math.Pow(RatingsPerformance - RatingsAverages[year], 2) * Show.Weight;
+                    ViewerDevTotal += Math.Pow(ViewersPerformance - ViewerAverages[year], 2) * Show.Weight;
+                    StatWeights += Show.Weight;
+
+
+                    RatingsThreshold = outputs[2];
+                    ViewersThreshold = outputs[3];
+
+                    Blend = outputs[4];
+                    BlendedPerformance = RatingsPerformance * Blend + ViewersPerformance * (1 - Blend);
+                    BlendedThreshold = RatingsThreshold * Blend + ViewersThreshold * (1 - Blend);
+
+
+
+                    //Test Accuracy
+                    difference = Math.Abs(BlendedPerformance - BlendedThreshold);
+
+                    if (CalculateMargin)
+                    {
+                        if (Show.Show.Renewed && BlendedPerformance > BlendedThreshold || Show.Show.Canceled && BlendedPerformance < BlendedThreshold)
+                            Correct.Add(new StatsContainer(difference, Show.Weight));
+                        else
+                            Incorrect.Add(new StatsContainer(difference, Show.Weight));
+                    }
+
+                    if (Show.Show.Renewed)
+                    {
+                        if (RatingsPerformance > RatingsThreshold)
+                            AccuracyTotal += 0.5 * Show.Weight;
+                        if (ViewersPerformance > ViewersThreshold)
+                            AccuracyTotal += 0.5 * Show.Weight;
+                        if (BlendedPerformance > BlendedThreshold)
+                            AccuracyTotal += Show.Weight;
+
+                        if (Show.Show.Canceled)
+                        {
+                            ErrorTotal += Math.Pow(RatingsThreshold - RatingsPerformance, 2) * Show.Weight * 0.5;
+                            ErrorTotal += Math.Pow(ViewersThreshold - ViewersPerformance, 2) * Show.Weight * 0.5;
+                            ErrorTotal += Math.Pow(BlendedThreshold - BlendedPerformance, 2) * Show.Weight;
+                        }
+                        else
+                        {
+                            if (RatingsPerformance < RatingsThreshold)
+                                ErrorTotal += Math.Pow(RatingsThreshold - RatingsPerformance, 2) * Show.Weight * 0.5;
+                            if (ViewersPerformance < ViewersThreshold)
+                                ErrorTotal += Math.Pow(ViewersThreshold - ViewersPerformance, 2) * Show.Weight * 0.5;
+                            if (BlendedPerformance < BlendedThreshold)
+                                ErrorTotal += Math.Pow(BlendedThreshold - BlendedPerformance, 2) * Show.Weight;
+                        }
+                    }
+                    else
+                    {
+                        if (RatingsPerformance < RatingsThreshold)
+                            AccuracyTotal += 0.5 * Show.Weight;
+                        else
+                            ErrorTotal += Math.Pow(RatingsPerformance - RatingsThreshold, 2) * Show.Weight * 0.5;
+
+                        if (ViewersPerformance < ViewersThreshold)
+                            AccuracyTotal += 0.5 * Show.Weight;
+                        else
+                            ErrorTotal += Math.Pow(ViewersPerformance - ViewersThreshold, 2) * Show.Weight * 0.5;
+
+                        if (BlendedPerformance < BlendedThreshold)
+                            AccuracyTotal += Show.Weight;
+                        else
+                            ErrorTotal += Math.Pow(BlendedPerformance - BlendedThreshold, 2) * Show.Weight;
+                    }
+                }
+            }
+
+            if (CalculateMargin)
+            {
+                return new double[1] { GetMargin(Incorrect, Correct) };
+            }
+            else
+            {
+                var returns = new double[6];
+
+                //Accuracy
+                returns[0] = AccuracyTotal / WeightTotal;
+                //Error
+                returns[1] = ErrorTotal / WeightTotal;
+
+                //RatingsAvg
+                returns[2] = RatingAvgTotal / StatWeights;
+                //RatingsDev
+                returns[3] = Math.Sqrt(RatingDevTotal / StatWeights);
+
+                //ViewersAvg
+                returns[4] = ViewerAvgTotal / StatWeights;
+                //ViewersDev
+                returns[5] = Math.Sqrt(ViewerDevTotal / StatWeights);
+
+                return returns;
+            }            
         }
     }   
 }

@@ -6,18 +6,18 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="NewTVPredictions.Predictions" x:DataType="vm:MainViewModel">
   <Grid DataContext="{Binding SelectedNetwork}" x:DataType="vm:Network">
-    <DataGrid HorizontalAlignment="Center" ItemsSource="{Binding AlphabeticalShows}" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="DataGrid_SelectionChanged">
+    <DataGrid HorizontalAlignment="Center" ItemsSource="{Binding FilteredShows}" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="DataGrid_SelectionChanged">
       <DataGrid.Columns>
-        <DataGridTextColumn Header="Show Name" Binding="{Binding Name}"/>
+        <DataGridTextColumn Header="Show Name" Binding="{Binding NameWithSeason}"/>
         <DataGridTextColumn Header="Rating" Binding="{Binding CurrentRating, StringFormat={}{0:N2}}"/>
         <DataGridTextColumn Header="Viewers" Binding="{Binding CurrentViewersString}"/>
         <DataGridTextColumn Header="Performance" Binding="{Binding CurrentPerformance, StringFormat={}{0:P0}}"/>
-        <DataGridTemplateColumn Header="Status">
+        <DataGridTemplateColumn Header="Status / Prediction">
           <DataTemplate x:DataType="vm:Show">
-            <TextBlock Text="{Binding RenewalStatus}" Foreground="{Binding RenewalColor}" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding PredictionStatus}" Foreground="{Binding RenewalColor}" VerticalAlignment="Center"/>
           </DataTemplate>
         </DataGridTemplateColumn>
-        <DataGridTextColumn Header="Odds" Binding="{Binding CurrentOdds, StringFormat={}{0:P0}}"/>
+        <DataGridTextColumn Header="Renewal Odds" Binding="{Binding CurrentOdds, StringFormat={}{0:P0}}"/>
       </DataGrid.Columns>
     </DataGrid>
   </Grid>
