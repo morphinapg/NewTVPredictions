@@ -142,6 +142,8 @@ public partial class MainViewModel : ViewModelBase
         {
             Networks.Add(CurrentNetwork);
             CurrentNetwork = new();
+
+            SaveDatabase();
         }
     }
 
@@ -493,7 +495,11 @@ public partial class MainViewModel : ViewModelBase
         {
             ImportVisible = false;
 
-            
+            foreach (var network in Networks)
+                network.Database_Modified += Network_Database_Modified;
+
+            SaveDatabase();
+
             var MaxYear = Networks.AsParallel().SelectMany(x => x.Shows).Select(x => x.Year).Max();
 
             if (MaxYear is not null)
@@ -516,6 +522,8 @@ public partial class MainViewModel : ViewModelBase
                 });
             };
             StatusUpdate.Start();
+
+            SaveEvolution();
 
             TrainingEnabled = true;
         }            
@@ -579,7 +587,11 @@ public partial class MainViewModel : ViewModelBase
     {
         ActivePage.Content = CurrentHome;
         TryLoadData();
+
+        DatabaseSave.Elapsed += DatabaseSave_Elapsed;
+        EvolutionSave.Elapsed += EvolutionSave_Elapsed;
     }
+    
 
     bool CancelTraining = false;
 
@@ -624,6 +636,8 @@ public partial class MainViewModel : ViewModelBase
             Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
 
             TrainingStarted = false;
+
+            SaveEvolution();
         }       
     }
 
@@ -649,13 +663,19 @@ public partial class MainViewModel : ViewModelBase
                     evolution.TopModelChanged = false;
                 }
             });
+
+            SaveEvolution();
         }
     }
 
     /// <summary>
-    /// Folder where data is saved
+    /// Locations where data is saved
     /// </summary>
     string DataFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TVPredictions");
+    string DatabasePath => Path.Combine(DataFolder, "Database.xml");
+    string DatabaseBackup => Path.Combine(DataFolder, "Database.bak");
+    string EvolutionPath => Path.Combine(DataFolder, "Evolution.xml");
+    string EvolutionBackup => Path.Combine(DataFolder, "Evolution.bak");
 
     /// <summary>
     /// Check to see if saved data is available, and if so, load it
@@ -665,17 +685,14 @@ public partial class MainViewModel : ViewModelBase
         if (!Directory.Exists(DataFolder))
             Directory.CreateDirectory(DataFolder);
 
-        string
-            DatabasePath = Path.Combine(DataFolder, "Database.xml"),
-            DatabaseBackup = Path.Combine(DataFolder, "Database.bak"),
-            EvolutionPath = Path.Combine(DataFolder, "Evolution.xml"),
-            EvolutionBackup = Path.Combine(DataFolder, "Evolution.bak");
-
-        ObservableCollection<Network>? Database = await LoadDataAsync<ObservableCollection<Network>>(DatabasePath, DatabaseBackup);       
+        var Database = await LoadDataAsync<List<Network>>(DatabasePath, DatabaseBackup);       
 
         if (Database is not null)
         {
-            Networks = Database;
+            Networks = new ObservableCollection<Network>(Database);
+
+            foreach (var network in Networks)
+                network.Database_Modified += Network_Database_Modified;
 
             var MaxYear = Networks.AsParallel().SelectMany(x => x.Shows).Select(x => x.Year).Max();
 
@@ -688,21 +705,21 @@ public partial class MainViewModel : ViewModelBase
             ConcurrentDictionary<string, Network> NetworkNames = new();
             Parallel.ForEach(Networks, x => NetworkNames[x.Name] = x);
 
-            ObservableCollection<Evolution>? Evolutions = await LoadDataAsync<ObservableCollection<Evolution>>(EvolutionPath, EvolutionBackup);            
+            var Evolutions = await LoadDataAsync<List<Evolution>>(EvolutionPath, EvolutionBackup);            
 
             if (Evolutions is not null)
             {
                 var evolutions = Evolutions.Where(x => NetworkNames.ContainsKey(x.NetworkName)).ToList();
 
-                Parallel.ForEach(EvolutionList, x =>
+                Parallel.ForEach(evolutions, x =>
                 {
                     x.Network = NetworkNames[x.NetworkName];
                     x.Network.Evolution = x;
                 });
 
-                var MainModels = EvolutionList.SelectMany(x => x.FamilyTrees.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
-                var TopModels = EvolutionList.SelectMany(x => x.TopModels.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
-                var AllModels = MainModels.Concat(TopModels);
+                var MainModels = evolutions.SelectMany(x => x.FamilyTrees.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
+                var TopModels = evolutions.SelectMany(x => x.TopModels.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
+                var AllModels = MainModels.Concat(TopModels).Where(x => x.Model is not null);
 
                 Parallel.ForEach(AllModels, x => x.Model.Network = x.Network);
 
@@ -713,17 +730,41 @@ public partial class MainViewModel : ViewModelBase
                     evolutions.Add(evolution);
                 });
 
+                
+
                 EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
             }
             else
             {
                 await CreateEvolutions();
             }
+
+            var StatusUpdate = new Timer(1000);
+            StatusUpdate.Elapsed += async (s, e) =>
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    foreach (var evolution in EvolutionList)
+                        evolution.UpdateText();
+                });
+            };
+            StatusUpdate.Start();
+            StatusUpdate.Start();
+
+            TrainingEnabled = true;
         }
         else
         {
             ImportVisible = true;
         }
+    }
+
+    /// <summary>
+    /// When data in the Network object has been modified, save the database
+    /// </summary>
+    private void Network_Database_Modified(object? sender, EventArgs e)
+    {
+        SaveDatabase();
     }
 
     async Task CreateEvolutions()
@@ -773,9 +814,70 @@ public partial class MainViewModel : ViewModelBase
             {
                 return await ReadObjectAsync<T>(BackupPath);
             }
-            finally { }
+            catch { }
         }
 
         return null;
+    }
+
+    async Task SaveDataAsync<T>(string PrimaryPath, string BackupPath, T Item)
+    {
+        try
+        {
+            //If existing data is valid data, and make a backup if so
+            if (File.Exists(PrimaryPath))
+            {
+                var data = await ReadObjectAsync<T>(PrimaryPath);
+
+                if (data is not null)
+                    File.Copy(PrimaryPath, BackupPath, true);
+            }
+
+            //Save data
+            await WriteObjectAsync<T>(PrimaryPath, Item);
+        }
+        catch { }       
+        
+    }
+
+    /// <summary>
+    /// Timers to handle saving
+    /// </summary>
+    Timer
+        DatabaseSave = new Timer(5000) { AutoReset = false },
+        EvolutionSave = new Timer(5000) { AutoReset = false };
+
+    /// <summary>
+    /// Save Evolution file when timer elapsed
+    /// </summary>
+    private async void EvolutionSave_Elapsed(object? sender, ElapsedEventArgs e)
+    {
+        var EvolutionSave = EvolutionList.Select(x => new Evolution(x)).ToList();
+
+        await SaveDataAsync<List<Evolution>>(EvolutionPath, EvolutionBackup, EvolutionSave);
+    }
+
+    /// <summary>
+    /// Save Database file when timer elapsed
+    /// </summary>
+    private async void DatabaseSave_Elapsed(object? sender, ElapsedEventArgs e)
+    {
+        await SaveDataAsync<List<Network>>(DatabasePath, DatabaseBackup, Networks.ToList());
+    }
+
+    /// <summary>
+    /// Ensure DatabaseSave timer is set to save in the next 5 seconds
+    /// </summary>
+    void SaveDatabase()
+    {
+        DatabaseSave.Start();
+    }
+
+    /// <summary>
+    /// Ensure EvolutionSave timer is set to save in the next 5 seconds
+    /// </summary>
+    void SaveEvolution()
+    {
+        EvolutionSave.Start();
     }
 }

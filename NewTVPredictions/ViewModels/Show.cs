@@ -432,6 +432,7 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        [DataMember]
         bool _canceled;
         /// <summary>
         /// Sets show as being cenceled
@@ -447,6 +448,7 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        [DataMember]
         bool _renewed;
         /// <summary>
         /// sets show as being renewed
@@ -462,8 +464,8 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        
 
+        [DataMember]
         string? _renewalStatus;
         /// <summary>
         /// Either default or custom renewal status string

@@ -131,6 +131,8 @@ namespace NewTVPredictions.ViewModels
         {
             if (CurrentYear is not null)
                 UpdateFilter();   
+
+            Database_Modified?.Invoke(this, e);
         }
 
         Show _currentShow = new();
@@ -199,6 +201,8 @@ namespace NewTVPredictions.ViewModels
                     Shows.Remove(OriginalShow);
                     Shows.Add(CurrentModifyShow);
                 }
+
+                Database_Modified?.Invoke(this, EventArgs.Empty);
             }
 
             ResetShow();
@@ -235,6 +239,8 @@ namespace NewTVPredictions.ViewModels
                 CurrentShow.Year = CurrentYear;
 
                 Shows.Add(CurrentShow);
+
+                Database_Modified?.Invoke(this, EventArgs.Empty);
             }            
 
             ResetShow();
@@ -574,5 +580,8 @@ namespace NewTVPredictions.ViewModels
 
             return projectedRating;
         }
+
+
+        public event EventHandler? Database_Modified;
     }
 }

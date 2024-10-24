@@ -37,6 +37,7 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         public bool TopModelChanged = true;
 
+        [DataMember]
         DateTime? _lastUpdate = null;
         /// <summary>
         /// The last time the top model was updated
@@ -409,6 +410,31 @@ namespace NewTVPredictions.ViewModels
 
                 MarginOfError[Episodes] = Margin;
             }         
+        }
+
+        /// <summary>
+        /// Deep clone other Evolution model
+        /// </summary>
+        public Evolution(Evolution other)
+        {
+            Accuracy = other.Accuracy;
+            Error = other.Error;
+            NetworkName = other.NetworkName;
+            LastUpdate = other.LastUpdate;
+
+            for (int i = 0; i < NumberOfTrees; i++)
+            {
+                FamilyTrees[i] = new();
+
+                foreach(var model in other.FamilyTrees[i].ToList())
+                {
+                    FamilyTrees[i].Add(new PredictionModel(model));
+                }
+
+                TopModels[i] = new PredictionModel[2];
+                TopModels[i][0] = other.TopModels[i][0];
+                TopModels[i][1] = other.TopModels[i][1];
+            }
         }
     }
 }
