@@ -5,20 +5,94 @@
              xmlns:vm="using:NewTVPredictions.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="NewTVPredictions.Predictions" x:DataType="vm:MainViewModel">
-  <Grid DataContext="{Binding SelectedNetwork}" x:DataType="vm:Network">
-    <DataGrid HorizontalAlignment="Center" ItemsSource="{Binding FilteredShows}" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="DataGrid_SelectionChanged">
-      <DataGrid.Columns>
-        <DataGridTextColumn Header="Show Name" Binding="{Binding NameWithSeason}"/>
-        <DataGridTextColumn Header="Rating" Binding="{Binding CurrentRating, StringFormat={}{0:N2}}"/>
-        <DataGridTextColumn Header="Viewers" Binding="{Binding CurrentViewersString}"/>
-        <DataGridTextColumn Header="Performance" Binding="{Binding CurrentPerformance, StringFormat={}{0:P0}}"/>
-        <DataGridTemplateColumn Header="Status / Prediction">
+  <UserControl.Resources>
+    <vm:ChangeConverter x:Key="ChangeConverter"/>
+    <vm:ChangeConverter2 x:Key="ChangeConverter2"/>
+    <vm:ChangeConverter2 x:Key="ChangeConverter3"/>
+    <vm:PerformanceToArrowConverter x:Key="ArrowConverter"/>
+    <vm:PerformanceToArrowConverter2 x:Key="ArrowConverter2"/>
+    <vm:PerformanceToArrowConverter3 x:Key="ArrowConverter3"/>
+  </UserControl.Resources>
+  
+  <StackPanel DataContext="{Binding SelectedNetwork}" x:DataType="vm:Network">
+    
+    <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" FontSize="24" FontWeight="Bold" Margin="15"/>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+      <DataGrid Margin="10" HorizontalScrollBarVisibility="Disabled" HorizontalAlignment="Center" ItemsSource="{Binding FilteredShows}" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="DataGrid_SelectionChanged">
+        <DataGrid.Styles>
+          <Style Selector="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="5"/>
+          </Style>
+
+        </DataGrid.Styles>
+
+        <DataGrid.Columns>
+
+          <DataGridTextColumn Header="Show Name" Binding="{Binding NameWithSeason}"/>
+          <DataGridTextColumn Header="Rating" Binding="{Binding CurrentRating, StringFormat={}{0:N3}}"/>
+          <DataGridTextColumn Header="Viewers" Binding="{Binding CurrentViewersString}"/>
+          <!--<DataGridTemplateColumn Header="Rating">
           <DataTemplate x:DataType="vm:Show">
-            <TextBlock Text="{Binding PredictionStatus}" Foreground="{Binding RenewalColor}" VerticalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="{Binding CurrentRating, StringFormat={}{0:N3}}"/>
+              <TextBlock Text="{Binding RatingChange, Converter={StaticResource ArrowConverter3}}" Foreground="{Binding RatingChange, Converter={StaticResource ChangeConverter3}}"/>
+            </StackPanel>
           </DataTemplate>
-        </DataGridTemplateColumn>
-        <DataGridTextColumn Header="Renewal Odds" Binding="{Binding CurrentOdds, StringFormat={}{0:P0}}"/>
-      </DataGrid.Columns>
-    </DataGrid>
-  </Grid>
+        </DataGridTemplateColumn>-->
+          <!--<DataGridTemplateColumn Header="Viewers">
+          <DataTemplate x:DataType="vm:Show">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="{Binding CurrentViewersString}"/>
+              <TextBlock Text="{Binding ViewerChange, Converter={StaticResource ArrowConverter2}}" Foreground="{Binding ViewerChange, Converter={StaticResource ChangeConverter2}}"/>
+            </StackPanel>
+          </DataTemplate>
+        </DataGridTemplateColumn>-->
+          <DataGridTextColumn Header="Ratio" Binding="{Binding CurrentPerformance, StringFormat={}{0:N2}x, TargetNullValue=''}"/>
+          <DataGridTemplateColumn Header="Status / Prediction">
+            <DataTemplate x:DataType="vm:Show">
+              <TextBlock Text="{Binding PredictionStatus}" Foreground="{Binding RenewalColor}" VerticalAlignment="Center"/>
+            </DataTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="Renewal Odds">
+            <DataTemplate x:DataType="vm:Show">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding CurrentOdds, StringFormat={}{0:P0}}"/>
+                <TextBlock Text="{Binding OddsChange, StringFormat={}{0:+#%;-#%}}" Foreground="{Binding OddsChange, Converter={StaticResource ChangeConverter2}}"/>
+              </StackPanel>
+            </DataTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+    </ScrollViewer>   
+    
+    
+    <Separator/>
+
+    <TextBlock Margin="10" TextWrapping="Wrap" Opacity="0.6">
+      <Span >
+        <Bold>Rating:</Bold>
+        What percentage of the 18-49 demographic was watching this show.
+        <LineBreak/><LineBreak/>
+        <Bold>Viewers:</Bold>
+        The total number of people who watched the show in millions (M) or thousands (K)
+        <LineBreak/><LineBreak/>
+        <Italic>Note: The Ratings and Viewers values are a projection for the end-season performance. These predictions are done by AI and can sometimes be inaccurate.</Italic>
+        <LineBreak/><LineBreak/>
+        <Bold>Ratio:</Bold>
+        The number of people watching the show compared to how many are needed for renewal.
+        <LineBreak/><LineBreak/>
+        <Italic>
+        For example: 
+        <LineBreak/>
+        * 2.00x would mean twice as many people are watching as are needed for renewal. 
+        <LineBreak/>
+        * 1.00x would mean the show is right on the line between renewal and cancellation.
+        <LineBreak/>
+        * 0.50x would mean half as many people are watching as are needed for renewal.
+        </Italic>
+      </Span>       
+    </TextBlock>
+  </StackPanel>
 </UserControl>

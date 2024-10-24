@@ -28,6 +28,7 @@ namespace TV_Ratings_Predictions
         public List<double> ratings = new(), viewers = new();
         public string RenewalStatus ="";
         public bool Renewed, Canceled;
+        public double OldRating, OldOdds, FinalPrediction, OldViewers;
 
         private int _episodes;
         public int Episodes

@@ -453,6 +453,12 @@ public partial class MainViewModel : ViewModelBase
                                 NewShow.Season = s.Season;
                                 NewShow.PreviousEpisodes = s.PreviousEpisodes;
                                 NewShow.Episodes = s.Episodes;
+                                NewShow.OldRating = s.OldRating;
+                                NewShow.OldViewers = s.OldViewers;
+                                NewShow.OldOdds = s.OldOdds;
+                                
+                                if (s.FinalPrediction > 0)
+                                    NewShow.FinalPrediction = s.FinalPrediction;
 
                                 for (int i = 0; i < s.factorValues.Count; i++)
                                 {

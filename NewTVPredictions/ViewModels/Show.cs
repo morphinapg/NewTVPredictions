@@ -24,7 +24,7 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// Reference to the parent Network, should be set when creating AddShow view
         /// </summary>
-        public Network? Parent                                              
+        public Network? Parent
         {
             get => _parent;
             set
@@ -39,7 +39,7 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// Name of the show
         /// </summary>
-        public string Name                                                  
+        public string Name
         {
             get => _name;
             set
@@ -56,7 +56,7 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// Which season the show is in for this year
         /// </summary>
-        public int Season                                                   
+        public int Season
         {
             get => _season;
             set
@@ -73,8 +73,8 @@ namespace NewTVPredictions.ViewModels
         /// How many episodes of the show aired before the current season
         /// Useful for the model to determine syndication status
         /// </summary>
-        public int PreviousEpisodes                                         
-        {                                                                   
+        public int PreviousEpisodes
+        {
             get => _previousEpisodes;
             set
             {
@@ -90,7 +90,7 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// How many episodes the current season will air (or likely air if unknown)
         /// </summary>
-        public int Episodes                                                 
+        public int Episodes
         {
             get => _episodes;
             set
@@ -106,8 +106,8 @@ namespace NewTVPredictions.ViewModels
         /// The list of factors this show has. 
         /// Will need to be updated if the Parent network factors change.
         /// </summary>
-        public ObservableCollection<Factor> Factors                         
-        {                                                                   
+        public ObservableCollection<Factor> Factors
+        {
             get => _factors;
             set
             {
@@ -121,7 +121,7 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// If a show is 30 minutes long
         /// </summary>
-        public bool HalfHour                                                
+        public bool HalfHour
         {
             get => _halfHour;
             set
@@ -142,7 +142,7 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// The year this TV season aired
         /// </summary>
-        public int? Year                                                    
+        public int? Year
         {
             get => _year;
             set
@@ -161,19 +161,25 @@ namespace NewTVPredictions.ViewModels
             Viewers = new();
 
         List<RatingsInfo> _ratingsContainer = new();
-        public  List<RatingsInfo> RatingsContainer => _ratingsContainer;
+        public List<RatingsInfo> RatingsContainer => _ratingsContainer;
 
         /// <summary>
         /// Initialize RatingsInfo with every new Show
         /// </summary>
-        public Show()                                                       
+        public Show()
         {
             RatingsContainer.Add(new RatingsInfo(Ratings, "Ratings"));
             RatingsContainer.Add(new RatingsInfo(Viewers, "Viewers"));
         }
 
         [DataMember]
-        double? _currentRating, _currentViewers, _currentPerformance, _currentOdds, OldRating, OldViewers, OldPerformance, OldOdds, _targetRating, _targetViewers;
+        double? _currentRating, _currentViewers, _currentPerformance, _currentOdds, _targetRating, _targetViewers;
+
+        [DataMember]
+        public double OldRating, OldViewers, OldPerformance, OldOdds;
+
+        [DataMember]
+        public double? FinalPrediction;
 
         /// <summary>
         /// The Projected Rating for the entire season
@@ -253,6 +259,8 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        public double? ActualOdds => _currentOdds;
+
         /// <summary>
         /// The ideal rating value for the season
         /// </summary>
@@ -277,7 +285,7 @@ namespace NewTVPredictions.ViewModels
                 _targetViewers = value;
                 OnPropertyChanged(nameof(TargetViewers));
                 OnPropertyChanged(nameof(TargetViewersString));
-            }                
+            }
         }
 
         /// <summary>
@@ -343,7 +351,26 @@ namespace NewTVPredictions.ViewModels
         }
 
         public double? RatingChange => CurrentRating - OldRating;
-        public double? ViewerChange => CurrentViewers - OldViewers;
+        public double? ViewerChange
+        {
+            get
+            {
+                var change = CurrentViewers - OldViewers;
+
+                if (CurrentViewers < 1)
+                {
+                    change *= 1000;
+                    if (change.HasValue)
+                        change = Math.Round(change.Value, 0);
+                }
+                    
+
+                return change;
+            }
+        }
+
+
+
         public double? PerformanceChange => CurrentPerformance - OldPerformance;
         public double? OddsChange => CurrentOdds - OldOdds;
 
@@ -385,6 +412,7 @@ namespace NewTVPredictions.ViewModels
             OldPerformance = other.OldPerformance;
             TargetRating = other.TargetRating;
             TargetViewers = other.TargetViewers;
+            FinalPrediction = other.FinalPrediction;
 
             if (other._renewalStatus is not null)
                 RenewalStatus = other.RenewalStatus;

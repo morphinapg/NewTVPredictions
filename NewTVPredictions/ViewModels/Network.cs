@@ -11,7 +11,6 @@ using Avalonia.Threading;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
 using ColorTextBlock.Avalonia;
-using System.Reactive.Concurrency;
 using System.Reflection.Metadata.Ecma335;
 
 namespace NewTVPredictions.ViewModels
@@ -130,7 +129,8 @@ namespace NewTVPredictions.ViewModels
         //This will need to run when a show is added to the Shows collection, in order to update the FilteredShows collection
         private void Shows_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)                                    
         {
-            UpdateFilter();   
+            if (CurrentYear is not null)
+                UpdateFilter();   
         }
 
         Show _currentShow = new();
@@ -250,14 +250,14 @@ namespace NewTVPredictions.ViewModels
             set
             {
                 _currentYear = value;
-                UpdateFilter();
+                //UpdateFilter();
             }
         }
 
         //Update FilteredShows and AlphabeticalShows by the current year
         public async void UpdateFilter()                                                                                                   
         {
-            var tmpShows = (CurrentYear is null ? Shows.AsParallel() : Shows.AsParallel().Where(x => x.Year == CurrentYear)).OrderByDescending(x => x.CurrentPerformance).ThenBy(x => x.Name).ThenBy(x => x.Season);
+            var tmpShows = (CurrentYear is null ? Shows.AsParallel() : Shows.AsParallel().Where(x => x.Year == CurrentYear)).OrderByDescending(x => x.ActualOdds).ThenByDescending(x => x.CurrentPerformance).ThenBy(x => x.Name).ThenBy(x => x.Season);
             var alphabetical = tmpShows.OrderBy(x => x.Name).ThenBy(x => x.Season);
 
             await Dispatcher.UIThread.InvokeAsync( () =>
@@ -397,6 +397,12 @@ namespace NewTVPredictions.ViewModels
 
             double NextYear = CurrentApp.CurrentYear + 1;
 
+            double sumWeights = 0;
+            double sumX = 0;
+            double sumY = 0;
+            double sumXY = 0;
+            double sumX2 = 0;
+
 
             foreach (var year in Shows.Select(x => x.Year).Distinct())
             {
@@ -408,7 +414,7 @@ namespace NewTVPredictions.ViewModels
                     foreach (var x in Shows.Where(x => x.Year == year))
                     {
                         var Ratings = InputType == 0 ? x.Ratings : x.Viewers;
-                        double weight = 0, total = 0;
+                        double weight = 0, total = 0, currentWeight = 0;
                         int count = 0;
                         showcount++;
 
@@ -428,6 +434,13 @@ namespace NewTVPredictions.ViewModels
 
                         var showavg = total / weight;
 
+                        currentWeight = 1 / (NextYear - year.Value);
+                        sumWeights += currentWeight;
+                        sumX += year.Value * currentWeight;
+                        sumY += showavg * currentWeight;
+                        sumXY = year.Value * showavg * currentWeight;
+                        sumX2 = year.Value * year.Value * currentWeight;
+
                         totalratings += showavg;
 
                         Offsets.Add(new ShowAvg(showavg, year.Value, 1 / (NextYear - year.Value)));
@@ -437,15 +450,12 @@ namespace NewTVPredictions.ViewModels
 
                     AverageRatings[year.Value] = avg;
                 }                
-            }
-
-            
+            }            
 
             var Trend = new Dictionary<int, double>();
-            var Equation = GetSlopeAndIntercept(AverageRatings);
-            double
-                slope = Equation[0],
-                intercept = Equation[1];
+            double 
+                slope = (sumWeights * sumXY - sumX * sumY) / (sumWeights * sumX2 - sumX * sumX),
+                intercept = (sumY - slope * sumX) / sumWeights;
 
             foreach (var key in AverageRatings.Keys)
                 Trend[key] = slope * key + intercept;
@@ -525,38 +535,6 @@ namespace NewTVPredictions.ViewModels
             }
 
             return Deviations;
-        }
-
-        /// <summary>
-        /// Calculates a trend line for the expected average rating per year
-        /// </summary>
-        /// <param name="AverageRatings">Dictionary of average ratings per year</param>
-        /// <param name="CurrentYear">The current TV season year</param>
-        /// <returns></returns>
-        double[] GetSlopeAndIntercept(Dictionary<int, double> AverageRatings)
-        {
-            int NextYear = CurrentApp.CurrentYear + 1;
-
-            double sumWeights = 0;
-            double sumX = 0;
-            double sumY = 0;
-            double sumXY = 0;
-            double sumX2 = 0;
-
-            foreach (var rating in AverageRatings)
-            {
-                double weight = 1.0 / (NextYear - rating.Key);
-                sumWeights += weight;
-                sumX += rating.Key * weight;
-                sumY += rating.Value * weight;
-                sumXY += rating.Key * rating.Value * weight;
-                sumX2 += rating.Key * rating.Key * weight;
-            }
-
-            double slope = (sumWeights * sumXY - sumX * sumY) / (sumWeights * sumX2 - sumX * sumX);
-            double intercept = (sumY - slope * sumX) / sumWeights;
-
-            return new double[] { slope, intercept };
         }
 
         /// <summary>
