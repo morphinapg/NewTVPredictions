@@ -352,7 +352,7 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    bool _importVisible = true;
+    bool _importVisible = false;
     /// <summary>
     /// Whether the import button is visible or not
     /// </summary>
@@ -493,7 +493,7 @@ public partial class MainViewModel : ViewModelBase
         {
             ImportVisible = false;
 
-            var evolutions = new ConcurrentBag<Evolution>();
+            
             var MaxYear = Networks.AsParallel().SelectMany(x => x.Shows).Select(x => x.Year).Max();
 
             if (MaxYear is not null)
@@ -502,18 +502,8 @@ public partial class MainViewModel : ViewModelBase
             foreach (var network in Networks)
                 network.CurrentYear = CurrentYear;
 
-            await Task.Run(() =>
-            {
-                Parallel.ForEach(Networks, x =>
-                {
-                    var evolution = new Evolution(x);       
-                    x.Evolution = evolution;
+            await CreateEvolutions();
 
-                    evolutions.Add(evolution);
-                });
-            });            
-
-            EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
             Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
 
             var StatusUpdate = new Timer(1000);
@@ -588,6 +578,7 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel()                                                                  
     {
         ActivePage.Content = CurrentHome;
+        TryLoadData();
     }
 
     bool CancelTraining = false;
@@ -641,6 +632,9 @@ public partial class MainViewModel : ViewModelBase
         await UpdateAverages();
     }
 
+    /// <summary>
+    /// 10 times a second during training, check if Evolution models have been updated
+    /// </summary>
     async Task UpdateAverages()
     {
         var needsupdate = EvolutionList.Where(x => x.TopModelChanged);
@@ -656,5 +650,132 @@ public partial class MainViewModel : ViewModelBase
                 }
             });
         }
+    }
+
+    /// <summary>
+    /// Folder where data is saved
+    /// </summary>
+    string DataFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TVPredictions");
+
+    /// <summary>
+    /// Check to see if saved data is available, and if so, load it
+    /// </summary>
+    async void TryLoadData()
+    {
+        if (!Directory.Exists(DataFolder))
+            Directory.CreateDirectory(DataFolder);
+
+        string
+            DatabasePath = Path.Combine(DataFolder, "Database.xml"),
+            DatabaseBackup = Path.Combine(DataFolder, "Database.bak"),
+            EvolutionPath = Path.Combine(DataFolder, "Evolution.xml"),
+            EvolutionBackup = Path.Combine(DataFolder, "Evolution.bak");
+
+        ObservableCollection<Network>? Database = await LoadDataAsync<ObservableCollection<Network>>(DatabasePath, DatabaseBackup);       
+
+        if (Database is not null)
+        {
+            Networks = Database;
+
+            var MaxYear = Networks.AsParallel().SelectMany(x => x.Shows).Select(x => x.Year).Max();
+
+            if (MaxYear is not null)
+                CurrentYear = MaxYear.Value;
+
+            foreach (var network in Networks)
+                network.CurrentYear = CurrentYear;
+
+            ConcurrentDictionary<string, Network> NetworkNames = new();
+            Parallel.ForEach(Networks, x => NetworkNames[x.Name] = x);
+
+            ObservableCollection<Evolution>? Evolutions = await LoadDataAsync<ObservableCollection<Evolution>>(EvolutionPath, EvolutionBackup);            
+
+            if (Evolutions is not null)
+            {
+                var evolutions = Evolutions.Where(x => NetworkNames.ContainsKey(x.NetworkName)).ToList();
+
+                Parallel.ForEach(EvolutionList, x =>
+                {
+                    x.Network = NetworkNames[x.NetworkName];
+                    x.Network.Evolution = x;
+                });
+
+                var MainModels = EvolutionList.SelectMany(x => x.FamilyTrees.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
+                var TopModels = EvolutionList.SelectMany(x => x.TopModels.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
+                var AllModels = MainModels.Concat(TopModels);
+
+                Parallel.ForEach(AllModels, x => x.Model.Network = x.Network);
+
+                Parallel.ForEach(Networks.Where(x => x.Evolution is null), x =>
+                {
+                    var evolution = new Evolution(x);
+                    x.Evolution = evolution;
+                    evolutions.Add(evolution);
+                });
+
+                EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+            }
+            else
+            {
+                await CreateEvolutions();
+            }
+        }
+        else
+        {
+            ImportVisible = true;
+        }
+    }
+
+    async Task CreateEvolutions()
+    {
+        var evolutions = new ConcurrentBag<Evolution>();
+        await Task.Run(() =>
+        {
+            Parallel.ForEach(Networks, x =>
+            {
+                var evolution = new Evolution(x);
+                x.Evolution = evolution;
+
+                evolutions.Add(evolution);
+            });
+        });
+
+        EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+    }
+
+    /// <summary>
+    /// Attempt to read a data file from a primary and backup location
+    /// </summary>
+    /// <typeparam name="T">Type of file being read</typeparam>
+    /// <param name="PrimaryPath">Main file location</param>
+    /// <param name="BackupPath">Backup file location</param>
+    /// <returns></returns>
+    async Task<T?> LoadDataAsync<T>(string PrimaryPath, string BackupPath) where T : class
+    {
+        if (File.Exists(PrimaryPath))
+        {
+            try
+            {
+                return await ReadObjectAsync<T>(PrimaryPath);
+            }
+            catch (Exception)
+            {
+                // If reading from the primary path fails, try the backup
+                if (File.Exists(BackupPath))
+                {
+                    return await ReadObjectAsync<T>(BackupPath);
+                }
+            }
+        }
+        else if (File.Exists(BackupPath)) // If the primary file doesn't exist, try the backup
+        {
+            try
+            {
+                return await ReadObjectAsync<T>(BackupPath);
+            }
+            finally { }
+        }
+
+        return null;
     }
 }

@@ -30,6 +30,7 @@ namespace NewTVPredictions.ViewModels
         public PredictionModel(Network network)
         {
             Network = network;
+            NetworkName = network.Name;
             var Shows = Network.Shows;
 
             ///Model 1 - Ratings Model
@@ -169,6 +170,7 @@ namespace NewTVPredictions.ViewModels
         public PredictionModel(PredictionModel other)
         {
             Network = other.Network;
+            NetworkName = other.NetworkName;
             RatingsModel = new NeuralNetwork(other.RatingsModel);
             RenewalModel = new NeuralNetwork(other.RenewalModel);
             Accuracy = other.Accuracy;
@@ -309,6 +311,7 @@ namespace NewTVPredictions.ViewModels
             RatingsModel = x.RatingsModel + y.RatingsModel;
             RenewalModel = x.RenewalModel + y.RenewalModel;
             Network = x.Network;
+            NetworkName = x.NetworkName;
 
             //The margins of error will ultimately be rewritten when TestAccuracy is calculated
             //But because they are needed to calculate the error value of renanceled shows (renewed for final season)

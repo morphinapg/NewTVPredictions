@@ -19,7 +19,7 @@
     <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" FontSize="24" FontWeight="Bold" Margin="15"/>
 
     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-      <DataGrid Margin="10" HorizontalScrollBarVisibility="Disabled" HorizontalAlignment="Center" ItemsSource="{Binding FilteredShows}" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="DataGrid_SelectionChanged">
+      <DataGrid Margin="15" HorizontalScrollBarVisibility="Disabled" HorizontalAlignment="Center" ItemsSource="{Binding FilteredShows}" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="DataGrid_SelectionChanged">
         <DataGrid.Styles>
           <Style Selector="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center"/>

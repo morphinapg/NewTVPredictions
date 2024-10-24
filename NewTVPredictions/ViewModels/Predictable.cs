@@ -52,9 +52,11 @@ namespace NewTVPredictions.ViewModels
         public bool Duplicate = false;
 
         //A reference to the parent network
-        [DataMember]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         public Network Network;
+
+        [DataMember]
+        public string NetworkName;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
 

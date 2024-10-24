@@ -97,6 +97,7 @@ namespace NewTVPredictions.ViewModels
         public Evolution(Network network)
         {
             Network = network;
+            NetworkName = network.Name;
             OnPropertyChanged(nameof(Name));
 
             var WeightedShows = Network.GetWeightedShows();
