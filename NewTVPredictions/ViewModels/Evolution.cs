@@ -428,13 +428,15 @@ namespace NewTVPredictions.ViewModels
 
                 foreach(var model in other.FamilyTrees[i].ToList())
                 {
-                    FamilyTrees[i].Add(new PredictionModel(model));
+                    FamilyTrees[i].Add(model);
                 }
 
                 TopModels[i] = new PredictionModel[2];
                 TopModels[i][0] = other.TopModels[i][0];
                 TopModels[i][1] = other.TopModels[i][1];
             }
+
+            MarginOfError = other.MarginOfError is null ? new() : new ConcurrentDictionary<EpisodePair, double>(other.MarginOfError);
         }
     }
 }

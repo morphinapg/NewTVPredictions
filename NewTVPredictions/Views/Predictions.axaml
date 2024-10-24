@@ -70,7 +70,7 @@
     
     <Separator/>
 
-    <TextBlock Margin="10" TextWrapping="Wrap" Opacity="0.6">
+    <TextBlock Margin="15" TextWrapping="Wrap" Opacity="0.6">
       <Span >
         <Bold>Rating:</Bold>
         What percentage of the 18-49 demographic was watching this show.

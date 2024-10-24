@@ -20,11 +20,11 @@ namespace NewTVPredictions.ViewModels
 
                 if (doubleValue > 0)
                 {
-                    return Brushes.Green;
+                    return Brushes.MediumSeaGreen;
                 }
                 else if (doubleValue < 0)
                 {
-                    return Brushes.Red;
+                    return Brushes.IndianRed;
                 }
                 else
                 {
@@ -51,11 +51,11 @@ namespace NewTVPredictions.ViewModels
 
                 if (doubleValue > 0)
                 {
-                    return Brushes.Green;
+                    return Brushes.MediumSeaGreen;
                 }
                 else if (doubleValue < 0)
                 {
-                    return Brushes.Red;
+                    return Brushes.IndianRed;
                 }
                 else
                 {
@@ -82,11 +82,11 @@ namespace NewTVPredictions.ViewModels
 
                 if (doubleValue > 0)
                 {
-                    return Brushes.Green;
+                    return Brushes.MediumSeaGreen;
                 }
                 else if (doubleValue < 0)
                 {
-                    return Brushes.Red;
+                    return Brushes.IndianRed;
                 }
                 else
                 {

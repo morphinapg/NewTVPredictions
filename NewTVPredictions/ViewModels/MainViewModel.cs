@@ -379,9 +379,10 @@ public partial class MainViewModel : ViewModelBase
         {
             _trainingEnabled = value;
             OnPropertyChanged(nameof(TrainingEnabled));
+            OnPropertyChanged(nameof(SidepanelEnabled));
         }
     }
-    
+
 
     bool _trainingStarted = false;
     /// <summary>
@@ -399,7 +400,7 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(SidepanelEnabled));
         }
     }
-    public bool SidepanelEnabled => !TrainingStarted;
+    public bool SidepanelEnabled => !TrainingStarted && TrainingEnabled;
 
     public string TrainingText => TrainingStarted ? "Stop Training" : "Start Training";
 
@@ -508,7 +509,46 @@ public partial class MainViewModel : ViewModelBase
             foreach (var network in Networks)
                 network.CurrentYear = CurrentYear;
 
-            await CreateEvolutions();
+
+            //Check if existing Evolution models exist, and import them if so. If not, create new models
+            ConcurrentDictionary<string, Network> NetworkNames = new();
+            Parallel.ForEach(Networks, x => NetworkNames[x.Name] = x);
+            var Evolutions = await LoadDataAsync<List<Evolution>>(EvolutionPath, EvolutionBackup);
+            
+            if (Evolutions is not null)
+            {
+                var evolutions = Evolutions.Where(x => NetworkNames.ContainsKey(x.NetworkName)).ToList();
+
+                Parallel.ForEach(evolutions, x =>
+                {
+                    x.Network = NetworkNames[x.NetworkName];
+                    x.Network.Evolution = x;
+                });
+
+                var MainModels = evolutions.SelectMany(x => x.FamilyTrees.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
+                var TopModels = evolutions.SelectMany(x => x.TopModels.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
+                var AllModels = MainModels.Concat(TopModels).Where(x => x.Model is not null);
+
+                Parallel.ForEach(AllModels, x => x.Model.Network = x.Network);
+
+                Parallel.ForEach(Networks.Where(x => x.Evolution is null), x =>
+                {
+                    var evolution = new Evolution(x);
+                    x.Evolution = evolution;
+                    evolutions.Add(evolution);
+                });
+
+
+
+                EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+
+                var controller = new EvolutionController(EvolutionList.ToList());
+                controller.UpdateMargins();
+            }
+            else
+            {
+                await CreateEvolutions();
+            }
 
             Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
 
@@ -733,6 +773,9 @@ public partial class MainViewModel : ViewModelBase
                 
 
                 EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+
+                var controller = new EvolutionController(EvolutionList.ToList());
+                controller.UpdateMargins();
             }
             else
             {
@@ -791,7 +834,7 @@ public partial class MainViewModel : ViewModelBase
     /// <param name="PrimaryPath">Main file location</param>
     /// <param name="BackupPath">Backup file location</param>
     /// <returns></returns>
-    async Task<T?> LoadDataAsync<T>(string PrimaryPath, string BackupPath) where T : class
+    async Task<T?> LoadDataAsync<T>(string PrimaryPath, string BackupPath = "") where T : class
     {
         if (File.Exists(PrimaryPath))
         {
@@ -799,7 +842,7 @@ public partial class MainViewModel : ViewModelBase
             {
                 return await ReadObjectAsync<T>(PrimaryPath);
             }
-            catch (Exception)
+            catch
             {
                 // If reading from the primary path fails, try the backup
                 if (File.Exists(BackupPath))
@@ -808,7 +851,7 @@ public partial class MainViewModel : ViewModelBase
                 }
             }
         }
-        else if (File.Exists(BackupPath)) // If the primary file doesn't exist, try the backup
+        else if (BackupPath != "" && File.Exists(BackupPath)) // If the primary file doesn't exist, try the backup
         {
             try
             {
@@ -820,14 +863,14 @@ public partial class MainViewModel : ViewModelBase
         return null;
     }
 
-    async Task SaveDataAsync<T>(string PrimaryPath, string BackupPath, T Item)
+    async Task SaveDataAsync<T>(string PrimaryPath, string BackupPath, T Item) where T : class
     {
         try
         {
             //If existing data is valid data, and make a backup if so
             if (File.Exists(PrimaryPath))
             {
-                var data = await ReadObjectAsync<T>(PrimaryPath);
+                var data = await LoadDataAsync<T>(PrimaryPath);
 
                 if (data is not null)
                     File.Copy(PrimaryPath, BackupPath, true);
@@ -836,7 +879,9 @@ public partial class MainViewModel : ViewModelBase
             //Save data
             await WriteObjectAsync<T>(PrimaryPath, Item);
         }
-        catch { }       
+        catch
+        { 
+        }       
         
     }
 
@@ -844,8 +889,8 @@ public partial class MainViewModel : ViewModelBase
     /// Timers to handle saving
     /// </summary>
     Timer
-        DatabaseSave = new Timer(5000) { AutoReset = false },
-        EvolutionSave = new Timer(5000) { AutoReset = false };
+        DatabaseSave = new Timer(1000) { AutoReset = false },
+        EvolutionSave = new Timer(1000) { AutoReset = false };
 
     /// <summary>
     /// Save Evolution file when timer elapsed
@@ -855,6 +900,8 @@ public partial class MainViewModel : ViewModelBase
         var EvolutionSave = EvolutionList.Select(x => new Evolution(x)).ToList();
 
         await SaveDataAsync<List<Evolution>>(EvolutionPath, EvolutionBackup, EvolutionSave);
+
+        await Dispatcher.UIThread.InvokeAsync(() => EvolutionSaving = false);
     }
 
     /// <summary>
@@ -863,21 +910,47 @@ public partial class MainViewModel : ViewModelBase
     private async void DatabaseSave_Elapsed(object? sender, ElapsedEventArgs e)
     {
         await SaveDataAsync<List<Network>>(DatabasePath, DatabaseBackup, Networks.ToList());
+
+        await Dispatcher.UIThread.InvokeAsync(() => DatabaseSaving = false);
     }
 
     /// <summary>
-    /// Ensure DatabaseSave timer is set to save in the next 5 seconds
+    /// Ensure DatabaseSave timer is set to save in the next 1 second
     /// </summary>
     void SaveDatabase()
     {
+        DatabaseSaving = true;
         DatabaseSave.Start();
     }
 
     /// <summary>
-    /// Ensure EvolutionSave timer is set to save in the next 5 seconds
+    /// Ensure EvolutionSave timer is set to save in the next 1 second
     /// </summary>
     void SaveEvolution()
     {
+        EvolutionSaving = true;
         EvolutionSave.Start();
     }
+
+    bool _databaseSaving, _evolutionSaving;
+    public bool DatabaseSaving
+    {
+        get => _databaseSaving;
+        set
+        {
+            _databaseSaving = value;
+            OnPropertyChanged(nameof(IsSaving));
+        }
+    }
+    public bool EvolutionSaving
+    {
+        get => _evolutionSaving;
+        set
+        {
+            _evolutionSaving = value;
+            OnPropertyChanged(nameof(IsSaving));
+        }
+    }
+
+    public bool IsSaving => DatabaseSaving || EvolutionSaving;
 }

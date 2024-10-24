@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:NewTVPredictions.ViewModels"
+             
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="NewTVPredictions.HomePage"
              x:DataType="vm:MainViewModel">
@@ -38,6 +39,7 @@
     <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
       <Button Content="{Binding TrainingText}" IsEnabled="{Binding TrainingEnabled}" Command="{Binding Training}"/>
       <Button HorizontalAlignment="Center" VerticalAlignment="Center" Content="Import Old Database" Command="{Binding Import_Database}" IsVisible="{Binding ImportVisible}" Margin="15"/>     
-    </StackPanel>    
+    </StackPanel>
+    
   </Grid>
 </UserControl>

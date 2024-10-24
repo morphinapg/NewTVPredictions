@@ -11,6 +11,7 @@ namespace NewTVPredictions.ViewModels
     [DataContract]
     public class Factor : ViewModelBase                                         //A Factor is a true/false property of every show on a network, things that could potentially impact how many viewers a show needs to be renewed
     {
+        [DataMember]
         string _text = "";
         public string Text                                                      //The Factor Text
         {
@@ -47,6 +48,7 @@ namespace NewTVPredictions.ViewModels
 
         public static implicit operator string(Factor f) => f.Text;             //Automatically treat factor as a string
 
+        [DataMember]
         bool _isTrue;
         public bool IsTrue                                                      //Turn the factor on or off for a particular show
         {

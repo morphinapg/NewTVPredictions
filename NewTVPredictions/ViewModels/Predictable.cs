@@ -18,7 +18,6 @@ namespace NewTVPredictions.ViewModels
         //[DataMember]
         //public double? MarginOfError, RatingMargin, ViewerMargin;
 
-        [DataMember]
         public ConcurrentDictionary<EpisodePair, double>
             MarginOfError = new(),
             RatingMargin = new(),

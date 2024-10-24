@@ -318,62 +318,62 @@ namespace NewTVPredictions.ViewModels
             //a temporary estimate will be retained which is the average of the two values
             //In all likelihood, this value should be pretty close to the final calculated margins
 
-            var AllKeys =
-                x.MarginOfError.Keys
-                .Concat(y.MarginOfError.Keys)
-                .Concat(x.RatingMargin.Keys)
-                .Concat(y.RatingMargin.Keys)
-                .Concat(x.ViewerMargin.Keys)
-                .Concat(y.ViewerMargin.Keys)
-                .Distinct();
+            //var AllKeys =
+            //    x.MarginOfError.Keys
+            //    .Concat(y.MarginOfError.Keys)
+            //    .Concat(x.RatingMargin.Keys)
+            //    .Concat(y.RatingMargin.Keys)
+            //    .Concat(x.ViewerMargin.Keys)
+            //    .Concat(y.ViewerMargin.Keys)
+            //    .Distinct();
 
-            foreach (var Key in AllKeys)
-            {
-                //First, set MarginOfError
-                double? value1 = null, value2 = null;
-                if (x.MarginOfError.ContainsKey(Key))
-                    value1 = x.MarginOfError[Key];
+            //foreach (var Key in AllKeys)
+            //{
+            //    //First, set MarginOfError
+            //    double? value1 = null, value2 = null;
+            //    if (x.MarginOfError.ContainsKey(Key))
+            //        value1 = x.MarginOfError[Key];
 
-                if (y.MarginOfError.ContainsKey(Key))
-                    value2 = y.MarginOfError[Key];
+            //    if (y.MarginOfError.ContainsKey(Key))
+            //        value2 = y.MarginOfError[Key];
 
-                var avg = new[] { value1, value2 }.Average();
+            //    var avg = new[] { value1, value2 }.Average();
 
-                if (avg is not null)
-                    MarginOfError[Key] = avg.Value;
+            //    if (avg is not null)
+            //        MarginOfError[Key] = avg.Value;
 
-                //Next, set RatingMargin
+            //    //Next, set RatingMargin
 
-                value1 = null;
-                value2 = null;
+            //    value1 = null;
+            //    value2 = null;
 
-                if (x.RatingMargin.ContainsKey(Key))
-                    value1 = x.RatingMargin[Key];
+            //    if (x.RatingMargin.ContainsKey(Key))
+            //        value1 = x.RatingMargin[Key];
 
-                if (y.RatingMargin.ContainsKey(Key))
-                    value2 = y.RatingMargin[Key];
+            //    if (y.RatingMargin.ContainsKey(Key))
+            //        value2 = y.RatingMargin[Key];
 
-                avg = new[] { value1, value2 }.Average();
+            //    avg = new[] { value1, value2 }.Average();
 
-                if (avg is not null)
-                    RatingMargin[Key] = avg.Value;
+            //    if (avg is not null)
+            //        RatingMargin[Key] = avg.Value;
 
-                //Finally, set ViewerMargin
+            //    //Finally, set ViewerMargin
 
-                value1 = null;
-                value2 = null;
+            //    value1 = null;
+            //    value2 = null;
 
-                if (x.ViewerMargin.ContainsKey(Key))
-                    value1 = x.ViewerMargin[Key];
+            //    if (x.ViewerMargin.ContainsKey(Key))
+            //        value1 = x.ViewerMargin[Key];
 
-                if (y.ViewerMargin.ContainsKey(Key))
-                    value2 = y.ViewerMargin[Key];
+            //    if (y.ViewerMargin.ContainsKey(Key))
+            //        value2 = y.ViewerMargin[Key];
 
-                avg = new[] { value1, value2 }.Average();
+            //    avg = new[] { value1, value2 }.Average();
 
-                if (avg is not null)
-                    ViewerMargin[Key] = avg.Value;
-            }
+            //    if (avg is not null)
+            //        ViewerMargin[Key] = avg.Value;
+            //}
         }
 
         public static PredictionModel operator+(PredictionModel x, PredictionModel y)
