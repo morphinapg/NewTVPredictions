@@ -35,6 +35,8 @@ namespace NewTVPredictions.ViewModels
                 return null;
         }
 
+        public event EventHandler? RatingsChanged;
+
         void SetRating(int i, double? value)
         {
             if (i > Ratings.Count - 1)
@@ -54,6 +56,8 @@ namespace NewTVPredictions.ViewModels
             }
             else
                 OnPropertyChanged("Episode" + (i + 1));
+
+            RatingsChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public double? Episode1 { get => GetRating(0); set => SetRating(0, value); }

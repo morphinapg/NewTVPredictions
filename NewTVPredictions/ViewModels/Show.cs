@@ -168,8 +168,24 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         public Show()
         {
+            ResetRatingsContainer();
+        }
+
+        public void ResetRatingsContainer()
+        {
+            _ratingsContainer = new();
             RatingsContainer.Add(new RatingsInfo(Ratings, "Ratings"));
             RatingsContainer.Add(new RatingsInfo(Viewers, "Viewers"));
+
+            RatingsContainer[0].RatingsChanged += Show_RatingsChanged;
+            RatingsContainer[1].RatingsChanged += Show_RatingsChanged;
+        }
+
+        public event EventHandler? RatingsChanged;
+
+        private void Show_RatingsChanged(object? sender, EventArgs e)
+        {
+            RatingsChanged?.Invoke(this, e);
         }
 
         [DataMember]

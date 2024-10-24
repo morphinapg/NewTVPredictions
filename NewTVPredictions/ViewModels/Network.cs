@@ -130,7 +130,9 @@ namespace NewTVPredictions.ViewModels
         private void Shows_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)                                    
         {
             if (CurrentYear is not null)
-                UpdateFilter();   
+                UpdateFilter();
+
+            SubscribeToShows();
 
             Database_Modified?.Invoke(this, e);
         }
@@ -583,5 +585,30 @@ namespace NewTVPredictions.ViewModels
 
 
         public event EventHandler? Database_Modified;
+
+
+        HashSet<Show> SubscribedShows = new();
+        public void SubscribeToShows()
+        {
+            if (SubscribedShows is null)
+                SubscribedShows = new();
+
+            foreach (var show in Shows.Except(SubscribedShows))
+            {
+                show.RatingsChanged += Show_RatingsChanged;
+                SubscribedShows.Add(show);
+            }
+             
+            foreach (var show in SubscribedShows.Except(Shows))
+            {
+                show.RatingsChanged -= Show_RatingsChanged;
+                SubscribedShows.Remove(show);
+            }                
+        }
+
+        private void Show_RatingsChanged(object? sender, EventArgs e)
+        {
+            Database_Modified?.Invoke(this, EventArgs.Empty);
+        }
     }
 }

@@ -742,6 +742,10 @@ public partial class MainViewModel : ViewModelBase
             foreach (var network in Networks)
                 network.CurrentYear = CurrentYear;
 
+            Parallel.ForEach(Networks.SelectMany(x => x.Shows).Where(x => x.RatingsContainer is null), x => x.ResetRatingsContainer());
+            foreach (var network in Networks)
+                network.SubscribeToShows();
+
             ConcurrentDictionary<string, Network> NetworkNames = new();
             Parallel.ForEach(Networks, x => NetworkNames[x.Name] = x);
 

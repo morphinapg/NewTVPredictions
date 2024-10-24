@@ -48,10 +48,10 @@ namespace NewTVPredictions.ViewModels
             //Reset secondary branch for each Evolution model
             Parallel.ForEach(AllNetworks.Select(x => Enumerable.Range(0, Evolution.NumberOfModels).Select(i => new { Model = x, Index = i })).SelectMany(x => x), x => x.Model.FamilyTrees[1][x.Index] = new PredictionModel(x.Model.Network));
 
-            ////Retest accuracy of top models
-            //Parallel.ForEach(AllNetworks.SelectMany(x => x.TopModels).SelectMany(x => x).Where(x => x is not null), x => x.TestAccuracy(Stats[x.Network], WeightedShows[x.Network]));
-            //foreach (var network in AllNetworks)
-            //    network.UpdateAccuracy();
+            //Retest accuracy of top models
+            Parallel.ForEach(AllNetworks.SelectMany(x => x.TopModels).SelectMany(x => x).Where(x => x is not null), x => x.TestAccuracy(Stats[x.Network], WeightedShows[x.Network]));
+            foreach (var network in AllNetworks)
+                network.UpdateAccuracy();
         }
 
         public void NextGeneration()
