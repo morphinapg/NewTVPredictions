@@ -88,9 +88,11 @@
       </Grid>
     </ScrollViewer>          
 
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="4" Grid.Column="1">
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Row="4" Grid.Column="1" IsEnabled="{Binding ModifyEnabled}">
       <Button Content="Cancel" Command="{Binding ResetShow_Clicked}"/>
       <Button Content="Save" Command="{Binding Save_Modify}"/>
     </StackPanel>
+    
+    <Button HorizontalAlignment="Left" Grid.Row="4" Grid.Column="1" Content="Delete Show" Command="{Binding Delete_Show}" IsEnabled="{Binding ModifyEnabled}"/>
   </Grid>
 </UserControl>

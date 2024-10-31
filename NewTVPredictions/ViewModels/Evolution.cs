@@ -29,8 +29,7 @@ namespace NewTVPredictions.ViewModels
         [DataMember]
         public PredictionModel[][] TopModels = new PredictionModel[NumberOfTrees][];
 
-        public PredictionModel TopModel1 => TopModels[0][0];
-        public PredictionModel TopModel2 => TopModels[0][1];
+        public PredictionModel TopModel => TopModels[0][0];
 
         /// <summary>
         /// Whether the top model has changed this generation
@@ -271,17 +270,17 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         public void UpdateAccuracy()
         {
-            if (TopModel1 is not null)
+            if (TopModel is not null)
             {
-                Accuracy = TopModel1.Accuracy;
-                Error = TopModel1.Error;
+                Accuracy = TopModel.Accuracy;
+                Error = TopModel.Error;
             }            
         }
 
         public void GeneratePredictions(int year, bool parallel)
         {
 
-            if (TopModel1 is not null)
+            if (TopModel is not null)
             {
                 var Shows = Network.Shows.Where(x => x.Year == year && x.CurrentOdds is null && x.Ratings.Any() && x.Viewers.Any());
                 var Predictions = new ConcurrentDictionary<Show, PredictionContainer>();
@@ -315,13 +314,16 @@ namespace NewTVPredictions.ViewModels
                             return currentrating - ViewerAverages[year] - ViewerOffsets[i];
                         }).ToList();
 
-                    var outputs = TopModel1.GetOutputs(x, x.Episodes, Ratings, Viewers);
+                    var outputs = TopModel.GetOutputs(x, x.Episodes, Ratings, Viewers);
 
                     double
                         ExpectedRatings = Network.GetProjectedRating(RatingsOffsets.Take(x.Episodes).ToList(), x.Episodes),
                         ExpectedViewers = Network.GetProjectedRating(ViewerOffsets.Take(x.Episodes).ToList(), x.Episodes),
                         RatingsProjection = Ratings.Count > 1 ? Network.GetProjectedRating(Ratings, x.Episodes) : Ratings[0] + (ExpectedRatings - RatingsOffsets[0]),
                         ViewersProjection = Viewers.Count > 1 ? Network.GetProjectedRating(Viewers, x.Episodes) : Viewers[0] + (ExpectedViewers - ViewerOffsets[0]);
+
+                    if (x.CurrentEpisodes > x.Episodes)
+                        x.Episodes = x.CurrentEpisodes;
 
                     double
                         CurrentRating = outputs[0] + RatingsProjection,
@@ -332,16 +334,16 @@ namespace NewTVPredictions.ViewModels
                         BlendedPerformance = CurrentRating * Blend + CurrentViewers * (1 - Blend),
                         BlendedThreshold = TargetRating * Blend + TargetViewers * (1 - Blend),
                         CurrentOdds = GetOdds(BlendedPerformance, BlendedThreshold, new EpisodePair(x.CurrentEpisodes, x.Episodes)),
-                        CurrentPerformance = TopModel1.GetCurrentPerformance(BlendedPerformance - BlendedThreshold, Blend);
+                        CurrentPerformance = TopModel.GetCurrentPerformance(BlendedPerformance - BlendedThreshold, Blend);
 
 
-                    CurrentRating = TopModel1.GetRatingsPerformance(CurrentRating, RatingsAverages[year], 0);
+                    CurrentRating = TopModel.GetRatingsPerformance(CurrentRating, RatingsAverages[year], 0);
 
-                    CurrentViewers = TopModel1.GetRatingsPerformance(CurrentViewers, ViewerAverages[year], 1);
+                    CurrentViewers = TopModel.GetRatingsPerformance(CurrentViewers, ViewerAverages[year], 1);
 
-                    TargetRating = TopModel1.GetRatingsPerformance(TargetRating, RatingsAverages[year], 0);
+                    TargetRating = TopModel.GetRatingsPerformance(TargetRating, RatingsAverages[year], 0);
 
-                    TargetViewers = TopModel1.GetRatingsPerformance(TargetViewers, ViewerAverages[year], 1);
+                    TargetViewers = TopModel.GetRatingsPerformance(TargetViewers, ViewerAverages[year], 1);
 
                     //double
                     //    CurrentPerformance1 = CurrentRating - TargetRating,
@@ -399,11 +401,11 @@ namespace NewTVPredictions.ViewModels
         /// <param name="TotalEpisodes">the total number of episodes for a show</param>
         public void CalculateMarginOfError(IEnumerable<WeightedShow> WeightedShows, PredictionStats Stats, int CurrentEpisode, int TotalEpisodes)
         {
-            if (TopModel1 is not null)
+            if (TopModel is not null)
             {
                 var Episodes = new EpisodePair(CurrentEpisode, TotalEpisodes);
 
-                var Margin = TestAccuracy(TopModel1, Stats, WeightedShows, true, CurrentEpisode, TotalEpisodes)[0];
+                var Margin = TestAccuracy(TopModel, Stats, WeightedShows, true, CurrentEpisode, TotalEpisodes)[0];
 
                 if (double.IsNaN(Margin) || double.IsInfinity(Margin) || Margin == 0)
                     Margin = 100;

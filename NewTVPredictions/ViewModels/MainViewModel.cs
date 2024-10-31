@@ -14,6 +14,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Timers;
+using Avalonia.Media.Imaging;
 
 namespace NewTVPredictions.ViewModels;
 
@@ -456,9 +457,9 @@ public partial class MainViewModel : ViewModelBase
                                 NewShow.Season = s.Season;
                                 NewShow.PreviousEpisodes = s.PreviousEpisodes;
                                 NewShow.Episodes = s.Episodes;
-                                NewShow.OldRating = s.OldRating;
-                                NewShow.OldViewers = s.OldViewers;
-                                NewShow.OldOdds = s.OldOdds;
+                                NewShow.OldRating = s.OldRating == 0 ? null : s.OldRating;
+                                NewShow.OldViewers = s.OldViewers == 0 ? null : s.OldViewers;
+                                NewShow.OldOdds = s.OldOdds == 0 ? null : s.OldOdds;
                                 
                                 if (s.FinalPrediction > 0)
                                     NewShow.FinalPrediction = s.FinalPrediction;
@@ -717,11 +718,15 @@ public partial class MainViewModel : ViewModelBase
     string EvolutionPath => Path.Combine(DataFolder, "Evolution.xml");
     string EvolutionBackup => Path.Combine(DataFolder, "Evolution.bak");
 
+    string ExportPath => Path.Combine(DataFolder, "ExportedDatabase.xml");
+
     /// <summary>
     /// Check to see if saved data is available, and if so, load it
     /// </summary>
     async void TryLoadData()
     {
+        DatabaseSaving = true;
+
         if (!Directory.Exists(DataFolder))
             Directory.CreateDirectory(DataFolder);
 
@@ -729,57 +734,72 @@ public partial class MainViewModel : ViewModelBase
 
         if (Database is not null)
         {
-            Networks = new ObservableCollection<Network>(Database);
+            //Make use of the Network clone constructor to re-initialize default values of Network and Show objects
+            Networks.Clear();
 
-            foreach (var network in Networks)
-                network.Database_Modified += Network_Database_Modified;
+            foreach(var network in Database)
+                Networks.Add(new Network(network));
 
-            var MaxYear = Networks.AsParallel().SelectMany(x => x.Shows).Select(x => x.Year).Max();
+            await Task.Run(() =>
+            {
+                foreach (var network in Networks)
+                    network.Database_Modified += Network_Database_Modified;
 
-            if (MaxYear is not null)
-                CurrentYear = MaxYear.Value;
+                var MaxYear = Networks.AsParallel().SelectMany(x => x.Shows).Select(x => x.Year).Max();
 
-            foreach (var network in Networks)
-                network.CurrentYear = CurrentYear;
+                if (MaxYear is not null)
+                    CurrentYear = MaxYear.Value;
 
-            Parallel.ForEach(Networks.SelectMany(x => x.Shows).Where(x => x.RatingsContainer is null), x => x.ResetRatingsContainer());
-            foreach (var network in Networks)
-                network.SubscribeToShows();
+                foreach (var network in Networks)
+                    network.CurrentYear = CurrentYear;
+
+                Parallel.ForEach(Networks.SelectMany(x => x.Shows).Where(x => x.RatingsContainer is null), x => x.ResetRatingsContainer());
+                foreach (var network in Networks)
+                    network.SubscribeToShows();
+            });
 
             ConcurrentDictionary<string, Network> NetworkNames = new();
             Parallel.ForEach(Networks, x => NetworkNames[x.Name] = x);
+
+            DatabaseSaving = false;
+            EvolutionSaving = true;
 
             var Evolutions = await LoadDataAsync<List<Evolution>>(EvolutionPath, EvolutionBackup);            
 
             if (Evolutions is not null)
             {
-                var evolutions = Evolutions.Where(x => NetworkNames.ContainsKey(x.NetworkName)).ToList();
-
-                Parallel.ForEach(evolutions, x =>
+                await Task.Run(async () =>
                 {
-                    x.Network = NetworkNames[x.NetworkName];
-                    x.Network.Evolution = x;
-                });
+                    var evolutions = Evolutions.Where(x => NetworkNames.ContainsKey(x.NetworkName)).ToList();
 
-                var MainModels = evolutions.SelectMany(x => x.FamilyTrees.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
-                var TopModels = evolutions.SelectMany(x => x.TopModels.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
-                var AllModels = MainModels.Concat(TopModels).Where(x => x.Model is not null);
+                    Parallel.ForEach(evolutions, x =>
+                    {
+                        x.Network = NetworkNames[x.NetworkName];
+                        x.Network.Evolution = x;
+                    });
 
-                Parallel.ForEach(AllModels, x => x.Model.Network = x.Network);
+                    var MainModels = evolutions.SelectMany(x => x.FamilyTrees.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
+                    var TopModels = evolutions.SelectMany(x => x.TopModels.SelectMany(y => y).Select(model => new { Network = x.Network, Model = model }));
+                    var AllModels = MainModels.Concat(TopModels).Where(x => x.Model is not null);
 
-                Parallel.ForEach(Networks.Where(x => x.Evolution is null), x =>
-                {
-                    var evolution = new Evolution(x);
-                    x.Evolution = evolution;
-                    evolutions.Add(evolution);
-                });
+                    Parallel.ForEach(AllModels, x => x.Model.Network = x.Network);
 
-                
+                    Parallel.ForEach(Networks.Where(x => x.Evolution is null), x =>
+                    {
+                        var evolution = new Evolution(x);
+                        x.Evolution = evolution;
+                        evolutions.Add(evolution);
+                    });
 
-                EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+                        Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+                    });                    
 
-                var controller = new EvolutionController(EvolutionList.ToList());
-                controller.UpdateMargins();
+                    var controller = new EvolutionController(EvolutionList.ToList());
+                    controller.UpdateMargins();
+                });                                
             }
             else
             {
@@ -796,7 +816,8 @@ public partial class MainViewModel : ViewModelBase
                 });
             };
             StatusUpdate.Start();
-            StatusUpdate.Start();
+
+            EvolutionSaving = false;
 
             TrainingEnabled = true;
         }
@@ -913,7 +934,9 @@ public partial class MainViewModel : ViewModelBase
     /// </summary>
     private async void DatabaseSave_Elapsed(object? sender, ElapsedEventArgs e)
     {
-        await SaveDataAsync<List<Network>>(DatabasePath, DatabaseBackup, Networks.ToList());
+        var DatabaseSave = Networks.Select(x => new Network(x)).ToList();
+
+        await SaveDataAsync<List<Network>>(DatabasePath, DatabaseBackup, DatabaseSave);
 
         await Dispatcher.UIThread.InvokeAsync(() => DatabaseSaving = false);
     }
@@ -957,4 +980,82 @@ public partial class MainViewModel : ViewModelBase
     }
 
     public bool IsSaving => DatabaseSaving || EvolutionSaving;
+
+    public CommandHandler Finalize_Click => new CommandHandler(SaveState);
+
+    async void SaveState()
+    {
+        var msg = MessageBoxManager.GetMessageBoxStandard("Are you sure?", "This will replace the previously saved prediction state. Continue?", ButtonEnum.YesNo);
+
+        var result = await msg.ShowAsync();
+
+        if (result == ButtonResult.Yes)
+        {
+            await Task.Run(() =>
+            {
+                if (File.Exists(DatabasePath))
+                    File.Copy(DatabasePath, ExportPath, true);
+
+                var NetworkYears = Networks.Where(x => x is not null && x.Evolution is not null).Select(network => network.Shows.Select(y => y.Year).Where(x => x is not null).Distinct().Select(year => new { Network = network, Year = year })).SelectMany(x => x);
+
+                Parallel.ForEach(NetworkYears, x => x.Network!.Evolution!.GeneratePredictions(x.Year!.Value, false));
+
+                Parallel.ForEach(Networks.SelectMany(x => x.Shows), x =>
+                {
+                    x.OldRating = x.CurrentRating;
+                    x.OldViewers = x.CurrentViewers;
+                    x.OldPerformance = x.CurrentPerformance;
+                    x.OldOdds = x.ActualOdds;
+
+                    if (string.IsNullOrEmpty(x.RenewalStatus))
+                        x.FinalPrediction = x.OldOdds;
+                });
+            });            
+
+            SaveDatabase();
+        }
+    }
+
+    bool _saveVisible = true;
+    public bool SaveVisible
+    {
+        get => _saveVisible;
+        set
+        {
+            _saveVisible = value;
+            OnPropertyChanged(nameof(SaveVisible));
+        }
+    }
+
+    public CommandHandler Save_Image => new CommandHandler(SaveImage);
+
+    async void SaveImage()
+    {
+        var TopLevel = CurrentApp.TopLevel;
+
+        if (SubPage.Content is UserControl control && TopLevel is not null && SelectedNetwork is not null)
+        {
+            SaveVisible = false;
+
+            var pngFileType = new FilePickerFileType("PNG Files");
+            pngFileType.Patterns = new[] { "*.png" };
+
+            var File = await TopLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Save Image",
+                SuggestedStartLocation = await TopLevel.StorageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Desktop),
+                FileTypeChoices = new List<FilePickerFileType> { pngFileType },
+                SuggestedFileName = SelectedNetwork.Name
+            });
+
+            if (File is not null)
+            {
+                var path = File.Path.LocalPath;
+
+                control.RenderToFile(path);
+            }
+
+            SaveVisible = true;
+        }
+    }
 }

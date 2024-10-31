@@ -7,6 +7,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="NewTVPredictions.HomePage"
              x:DataType="vm:MainViewModel">
+  
   <Grid RowDefinitions="4*,*">
     <DataGrid IsHitTestVisible="False" HeadersVisibility="None" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{Binding EvolutionList}" Margin="25" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False">
       <DataGrid.Styles>
@@ -36,9 +37,16 @@
         </DataGridTemplateColumn>
       </DataGrid.Columns>
     </DataGrid>
-    <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-      <Button Content="{Binding TrainingText}" IsEnabled="{Binding TrainingEnabled}" Command="{Binding Training}"/>
-      <Button HorizontalAlignment="Center" VerticalAlignment="Center" Content="Import Old Database" Command="{Binding Import_Database}" IsVisible="{Binding ImportVisible}" Margin="15"/>     
+    <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" IsEnabled="{Binding TrainingEnabled}" >
+      <StackPanel.Styles>
+        <Style Selector="Button">
+          <Setter Property="Margin" Value="5"/>
+        </Style>
+      </StackPanel.Styles>
+      
+      <Button Content="{Binding TrainingText}" Command="{Binding Training}"/>
+      <Button HorizontalAlignment="Center" VerticalAlignment="Center" Content="Import Old Database" Command="{Binding Import_Database}" IsVisible="{Binding ImportVisible}" Margin="15"/>  
+      <Button Content="Finalize Current Predictions" IsVisible="{Binding TrainingEnabled}" Command="{Binding Finalize_Click}"/>
     </StackPanel>
     
   </Grid>

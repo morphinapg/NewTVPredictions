@@ -13,6 +13,7 @@ using MsBox.Avalonia.Enums;
 using Avalonia.Media;
 using System.Runtime.CompilerServices;
 using System.Reflection;
+using Avalonia.Threading;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -192,7 +193,7 @@ namespace NewTVPredictions.ViewModels
         double? _currentRating, _currentViewers, _currentPerformance, _currentOdds, _targetRating, _targetViewers;
 
         [DataMember]
-        public double OldRating, OldViewers, OldPerformance, OldOdds;
+        public double? OldRating, OldViewers, OldPerformance, OldOdds;
 
         [DataMember]
         public double? FinalPrediction;
@@ -356,9 +357,9 @@ namespace NewTVPredictions.ViewModels
             get
             {
                 if (Renewed)
-                    return Brushes.Green;
+                    return Brushes.MediumSeaGreen;
                 else if (Canceled)
-                    return Brushes.Red;
+                    return Brushes.IndianRed;
                 else if (string.IsNullOrEmpty(RenewalStatus))
                     return Brushes.White;
                 else
@@ -385,6 +386,7 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        public bool IsNew => OldOdds is null || OldOdds == 0;
 
 
         public double? PerformanceChange => CurrentPerformance - OldPerformance;
@@ -422,7 +424,7 @@ namespace NewTVPredictions.ViewModels
             CurrentViewers = other.CurrentViewers;
             OldRating = other.OldRating;
             OldViewers = other.OldViewers;
-            CurrentOdds = other.CurrentOdds;
+            _currentOdds = other._currentOdds;
             OldOdds = other.OldOdds;
             CurrentPerformance = other.CurrentPerformance;
             OldPerformance = other.OldPerformance;
@@ -444,7 +446,7 @@ namespace NewTVPredictions.ViewModels
 
             if (this != other)
             {
-                MessageBoxManager.GetMessageBoxStandard("Error", "Please update the copy constructor to support '" + MissingMember + "'", ButtonEnum.Ok).ShowAsync();
+                Dispatcher.UIThread.InvokeAsync(() => MessageBoxManager.GetMessageBoxStandard("Error", "Please update the copy constructor to support '" + MissingMember + "'", ButtonEnum.Ok).ShowAsync());                
             }
         }
 
@@ -538,6 +540,8 @@ namespace NewTVPredictions.ViewModels
 
             foreach (var member in members)
             {
+                
+
                 if (member.Name != "RatingsContainer" && member.Name != "_ratingsContainer" && member.Name != "MissingProperty")
                 {
                     var value1 = member is PropertyInfo prop1 ? prop1.GetValue(x) : ((FieldInfo)member).GetValue(x);
@@ -556,6 +560,7 @@ namespace NewTVPredictions.ViewModels
                     {
                         if (!ReferenceEquals(value1, value2))
                         {
+
                             var enumerable1 = value1 as IEnumerable;
                             var enumerable2 = value2 as IEnumerable;
 
@@ -570,7 +575,8 @@ namespace NewTVPredictions.ViewModels
                             else if (value1 is not null && value2 is not null && !value1.Equals(value2))
                             {
                                 x.MissingMember = member.Name;
-                                MessageBoxManager.GetMessageBoxStandard("Error", "'" + member.Name + "' requires custom code to check equivalency.", ButtonEnum.Ok).ShowAsync();
+                                Dispatcher.UIThread.InvokeAsync(() => MessageBoxManager.GetMessageBoxStandard("Error", "'" + member.Name + "' requires custom code to check equivalency.", ButtonEnum.Ok).ShowAsync());
+                                
                                 return false;
                             }
                         }

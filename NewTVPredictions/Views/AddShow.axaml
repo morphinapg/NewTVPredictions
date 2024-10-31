@@ -43,12 +43,16 @@
         <Setter Property="Margin" Value="0"/>
         <Setter Property="Padding" Value="0"/>
       </Style>
+
+      <Style Selector="CheckBox">
+        <Setter Property="Margin" Value="5"/>
+      </Style>
     </Grid.Styles>
 
     <TextBlock Text="Add a New Show" FontSize="36" HorizontalAlignment="Center"/>
 
     <ScrollViewer Grid.Row="1">
-      <Grid RowDefinitions="Auto,*,Auto" Margin="10">
+      <Grid RowDefinitions="Auto,*,Auto, Auto, Auto" Margin="10">
         <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" DataContext="{Binding CurrentShow}" x:DataType="vm:Show" x:Name="ShowGrid">
 
           <TextBlock Text="Show Name:" FontSize="20" Grid.ColumnSpan="2"/>
@@ -79,6 +83,14 @@
         </ItemsControl>
 
         <ToggleSwitch Grid.Row="2" OffContent="30 Minutes" OnContent="60 Minutes" DataContext="{Binding CurrentShow}" x:DataType="vm:Show" HorizontalAlignment="Center" IsChecked="{Binding HourLong}"/>
+
+        <StackPanel DataContext="{Binding CurrentShow}" Orientation="Horizontal" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Center">
+          <TextBlock Text="Renewal Status:"/>
+          <CheckBox Content="Canceled" IsChecked="{Binding Canceled}"/>
+          <CheckBox Content="Renewed" IsChecked="{Binding Renewed}"/>
+        </StackPanel>
+
+        <TextBox DataContext="{Binding CurrentShow}" Grid.Row="4" Grid.ColumnSpan="2" Text="{Binding RenewalStatus}"/>
       </Grid>      
     </ScrollViewer>    
 

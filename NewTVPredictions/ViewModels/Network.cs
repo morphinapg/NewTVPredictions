@@ -12,6 +12,8 @@ using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
 using ColorTextBlock.Avalonia;
 using System.Reflection.Metadata.Ecma335;
+using System.Collections.Concurrent;
+using Avalonia.Media;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -282,6 +284,7 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         public void SubscribeToFactors()                                                                                            
         {
+
             while (SubscribedFactors.Any())
             {
                 var factor = SubscribedFactors.Dequeue();
@@ -442,7 +445,8 @@ namespace NewTVPredictions.ViewModels
 
                         var showavg = total / weight;
 
-                        currentWeight = 1 / (NextYear - year.Value);
+                        currentWeight = 1 / (NextYear - year.Value) * x.CurrentEpisodes;
+
                         sumWeights += currentWeight;
                         sumX += year.Value * currentWeight;
                         sumY += showavg * currentWeight;
@@ -609,6 +613,43 @@ namespace NewTVPredictions.ViewModels
         private void Show_RatingsChanged(object? sender, EventArgs e)
         {
             Database_Modified?.Invoke(this, EventArgs.Empty);
+        }
+
+        public Network (Network other)
+        {
+            Name = other.Name;
+            foreach (var factor in other.Factors)
+                Factors.Add(new Factor(factor));
+
+            var tempShows = other.Shows.Select(x => new Show(x)).ToList();
+
+            Shows = new ObservableCollection<Show>(tempShows);
+            RatingsDev = other.RatingsDev;
+            ViewersDev = other.ViewersDev;
+        }
+
+        public CommandHandler Delete_Show => new CommandHandler(DeleteShow);
+
+        async void DeleteShow()
+        {
+            var msg = MessageBoxManager.GetMessageBoxStandard("Are you sure?", "Are you sure you want to delete the current show? This cannot be undone!", ButtonEnum.YesNo);
+
+            var result = await msg.ShowAsync();
+
+            if (result == ButtonResult.Yes)
+            {
+                if (CurrentModifyShow is not null)
+                {
+                    var OriginalShow = Shows.Where(x => x.Name == CurrentModifyShow.Name && x.Season == CurrentModifyShow.Season && x.Year == CurrentModifyShow.Year).FirstOrDefault();
+
+                    if (OriginalShow is not null)
+                        Shows.Remove(OriginalShow);
+
+                    Database_Modified?.Invoke(this, EventArgs.Empty);
+                }
+
+                ResetShow();
+            }
         }
     }
 }
