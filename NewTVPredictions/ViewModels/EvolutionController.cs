@@ -55,7 +55,10 @@ namespace NewTVPredictions.ViewModels
             Dispatcher.UIThread.InvokeAsync(() =>
             {
                 foreach (var network in AllNetworks)
+                {
                     network.UpdateAccuracy();
+                    network.OldAccuracy = network.Accuracy;
+                }                    
             });            
         }
 
@@ -96,6 +99,8 @@ namespace NewTVPredictions.ViewModels
             var EpisodePairs = Enumerable.Range(1, 26).Select(TotalEpisodes => Enumerable.Range(1, TotalEpisodes).Select(CurrentEpisode => new { CurrentEpisode, TotalEpisodes })).SelectMany(x => x);
 
             Parallel.ForEach( AllNetworks.Select(Evolution => EpisodePairs.Select(x => new { Evolution, x.CurrentEpisode, x.TotalEpisodes })).SelectMany(x => x), x => x.Evolution.CalculateMarginOfError(WeightedShows[x.Evolution.Network], Stats[x.Evolution.Network],x.CurrentEpisode, x.TotalEpisodes));
+
+            Parallel.ForEach(AllNetworks, x => x.OldAccuracy = null);
         }
     }
 }

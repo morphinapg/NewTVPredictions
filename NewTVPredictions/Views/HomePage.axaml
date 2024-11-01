@@ -7,6 +7,10 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="NewTVPredictions.HomePage"
              x:DataType="vm:MainViewModel">
+
+  <UserControl.Resources>
+    <vm:ChangeConverter2 x:Key="ChangeConverter2"/>
+  </UserControl.Resources>
   
   <Grid RowDefinitions="4*,*">
     <DataGrid IsHitTestVisible="False" HeadersVisibility="None" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{Binding EvolutionList}" Margin="25" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False">
@@ -31,8 +35,11 @@
         </DataGridTemplateColumn>
         <DataGridTextColumn Header="Accuracy" Binding="{Binding Accuracy, StringFormat={}{0:P2}}" FontSize="24"/>
         <DataGridTemplateColumn>
-          <DataTemplate>
-            <TextBlock Text="{Binding LastUpdateText}" Opacity="0.5"/>
+          <DataTemplate x:DataType="vm:Evolution">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">              
+              <TextBlock Text="{Binding LastUpdateText}" Opacity="0.5"/>
+              <TextBlock Text="{Binding AccuracyChange}" Foreground="{Binding ActualChange, Converter={StaticResource ChangeConverter2}}"/>
+            </StackPanel>
           </DataTemplate>
         </DataGridTemplateColumn>
       </DataGrid.Columns>

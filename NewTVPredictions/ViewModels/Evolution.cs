@@ -51,6 +51,40 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        double? _oldAccuracy = null;
+        public double? OldAccuracy
+        {
+            get => _oldAccuracy;
+            set
+            {
+                _oldAccuracy = value;
+                OnPropertyChanged(nameof(AccuracyChange));
+                OnPropertyChanged(nameof(ActualChange));
+            }
+        }
+
+        public string? AccuracyChange
+        {
+            get
+            {
+                var change = Accuracy - OldAccuracy;
+
+                if (change is null || change == 0 || Math.Round(change.Value * 100, 2) == 0)
+                    return null;
+                else
+                {
+                    var changestring = change.Value.ToString("P2");
+
+                    if (change > 0)
+                        changestring = "+" + changestring;
+
+                    return changestring;
+                }
+            }
+        }
+
+        public double? ActualChange => (Accuracy - OldAccuracy) * 100;
+
         /// <summary>
         /// Text representing how long it's been since the model updated
         /// </summary>
@@ -274,6 +308,9 @@ namespace NewTVPredictions.ViewModels
             {
                 Accuracy = TopModel.Accuracy;
                 Error = TopModel.Error;
+
+                OnPropertyChanged(nameof(AccuracyChange));
+                OnPropertyChanged(nameof(ActualChange));
             }            
         }
 
