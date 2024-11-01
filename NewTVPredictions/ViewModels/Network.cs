@@ -493,20 +493,29 @@ namespace NewTVPredictions.ViewModels
             var MaxEpisodes = Shows.Max(x => x.Episodes);
             var EpisodeOffsets = new double[26];
 
+            double weight, total, NextYear = CurrentApp.CurrentYear + 1, offset, currentweight;
+
             for (int i = 0; i < MaxEpisodes; i++)
             {
-                EpisodeOffsets[i] = Shows.Where(x => (InputType == 0 ? x.Ratings.Count : x.Viewers.Count) > i && x.Year is not null).Select(x =>
+                weight = 0;
+                total = 0;
+
+                foreach (var x in Shows.Where(x => (InputType == 0 ? x.Ratings.Count : x.Viewers.Count) > i && x.Year is not null))
                 {
                     var Ratings = InputType == 0 ? x.Ratings : x.Viewers;
-
                     var currentrating = Ratings[i] is null || Ratings[i] == 0 ?
                                 (InputType == 0 ? 0.004 : 0.0004) :
                                 Ratings[i]!.Value;
-
                     currentrating = Math.Log10(currentrating);
 
-                    return currentrating - AverageRatings[x.Year!.Value];
-                }).Average();
+                    offset = currentrating - AverageRatings[x.Year!.Value];
+                    currentweight = 1 / (NextYear - x.Year.Value);
+
+                    weight += currentweight;
+                    total += offset * currentweight;
+                }
+
+                EpisodeOffsets[i] = total / weight;
             }
 
             return EpisodeOffsets;

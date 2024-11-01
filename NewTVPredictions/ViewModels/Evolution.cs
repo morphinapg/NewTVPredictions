@@ -319,7 +319,7 @@ namespace NewTVPredictions.ViewModels
 
             if (TopModel is not null)
             {
-                var Shows = Network.Shows.Where(x => x.Year == year && x.CurrentOdds is null && x.Ratings.Any() && x.Viewers.Any());
+                var Shows = Network.Shows.Where(x => x.Year == year && x.ActualOdds is null && x.Ratings.Any() && x.Viewers.Any());
                 var Predictions = new ConcurrentDictionary<Show, PredictionContainer>();
 
                 Dictionary<int, double>

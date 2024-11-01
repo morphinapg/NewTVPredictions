@@ -742,6 +742,8 @@ public partial class MainViewModel : ViewModelBase
 
             await Task.Run(() =>
             {
+                Parallel.ForEach(Networks.SelectMany(x => x.Shows), x => x.CurrentOdds = null);
+
                 foreach (var network in Networks)
                     network.Database_Modified += Network_Database_Modified;
 
