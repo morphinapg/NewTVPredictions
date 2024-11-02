@@ -242,15 +242,14 @@ public partial class MainViewModel : ViewModelBase
     /// </summary>
     async void SwitchTab()                                                              
     {
+        if (SelectedNetwork is not null)
+            SelectedNetwork.UpdateFilter();
 
         switch (SelectedTabIndex)
         {
             case PREDICTIONS:
                 if (SelectedNetwork is not null && SelectedNetwork.Evolution is not null)
-                {
                     SelectedNetwork.Evolution.GeneratePredictions(CurrentYear, CurrentPredictions is null);
-                    SelectedNetwork.UpdateFilter();
-                }                    
 
                 if (CurrentPredictions is null)
                     CurrentPredictions = new Predictions();

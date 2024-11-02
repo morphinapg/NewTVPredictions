@@ -21,7 +21,7 @@
         <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" FontSize="24" FontWeight="Bold" Margin="15"/>
 
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-          <DataGrid Margin="15" HorizontalScrollBarVisibility="Disabled" HorizontalAlignment="Center" ItemsSource="{Binding FilteredShows}" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="DataGrid_SelectionChanged" x:Name="PredictionChart">
+          <DataGrid x:Name="PredictionChart" Margin="15" HorizontalScrollBarVisibility="Disabled" HorizontalAlignment="Center" ItemsSource="{Binding FilteredShows}" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="DataGrid_SelectionChanged">
             <DataGrid.Styles>
               <Style Selector="TextBlock">
                 <Setter Property="VerticalAlignment" Value="Center"/>
@@ -41,22 +41,6 @@
               </DataGridTemplateColumn>
               <DataGridTextColumn Header="Rating" Binding="{Binding CurrentRating, StringFormat={}{0:N3}}"/>
               <DataGridTextColumn Header="Viewers" Binding="{Binding CurrentViewersString}"/>
-              <!--<DataGridTemplateColumn Header="Rating">
-          <DataTemplate x:DataType="vm:Show">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="{Binding CurrentRating, StringFormat={}{0:N3}}"/>
-              <TextBlock Text="{Binding RatingChange, Converter={StaticResource ArrowConverter3}}" Foreground="{Binding RatingChange, Converter={StaticResource ChangeConverter3}}"/>
-            </StackPanel>
-          </DataTemplate>
-        </DataGridTemplateColumn>-->
-              <!--<DataGridTemplateColumn Header="Viewers">
-          <DataTemplate x:DataType="vm:Show">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="{Binding CurrentViewersString}"/>
-              <TextBlock Text="{Binding ViewerChange, Converter={StaticResource ArrowConverter2}}" Foreground="{Binding ViewerChange, Converter={StaticResource ChangeConverter2}}"/>
-            </StackPanel>
-          </DataTemplate>
-        </DataGridTemplateColumn>-->
               <DataGridTextColumn Header="Ratio" Binding="{Binding CurrentPerformance, StringFormat={}{0:N2}x, TargetNullValue=''}"/>
               <DataGridTemplateColumn Header="Status / Prediction">
                 <DataTemplate x:DataType="vm:Show">
@@ -76,9 +60,9 @@
         </ScrollViewer>
 
 
-        <Separator/>
+        <Separator MaxWidth="{Binding Bounds.Width, ElementName=PredictionChart}"/>
 
-        <TextBlock Margin="15" TextWrapping="Wrap" Opacity="0.6">
+        <TextBlock Margin="15" TextWrapping="Wrap" Opacity="0.6" MaxWidth="{Binding Bounds.Width, ElementName=PredictionChart}">
           <Span >
             <Bold>Rating:</Bold>
             What percentage of the 18-49 demographic was watching this show.

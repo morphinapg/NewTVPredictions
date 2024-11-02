@@ -567,16 +567,22 @@ namespace NewTVPredictions.ViewModels
         public double GetProjectedRating(List<double> Episodes, int ProjectedEpisode)
         {
             double sumWeights = 0, sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-                
+
+            double RunningTotal = 0, CurrentAverage = 0;
 
             for (int i = 0; i < Episodes.Count; i++)
             {
                 int episode = i + 1;
-                double weight = episode;
+                double weight = episode * episode;
+
+                RunningTotal += weight * Episodes[i];
                 sumWeights += weight;
+
+                CurrentAverage = RunningTotal / sumWeights;
+                
                 sumX += episode * weight;
-                sumY += Episodes[i] * weight;
-                sumXY += episode * Episodes[i] * weight;
+                sumY += CurrentAverage * weight;
+                sumXY += episode * CurrentAverage * weight;
                 sumX2 += episode * episode * weight;
             }
 
