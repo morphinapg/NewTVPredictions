@@ -97,6 +97,13 @@ namespace NewTVPredictions.ViewModels
 
                 var Time = DateTime.Now - LastUpdate.Value;
 
+                if (Time.TotalSeconds > 60 && TopModelLocked == false)
+                {
+                    TopModelLocked = true;
+                    OnPropertyChanged(nameof(Checkmark));
+                }
+                    
+
                 if (Time.TotalSeconds < 2)
                     return "(Updated 1 second ago)";
                 else if (Time.TotalSeconds < 60)
@@ -115,6 +122,9 @@ namespace NewTVPredictions.ViewModels
                     return "(Updated " + Time.Days + " days ago)";
             }
         }
+
+        public bool? TopModelLocked = null;
+        public string? Checkmark => TopModelLocked == true && OldAccuracy is not null ? "✔️" : null;
 
         /// <summary>
         /// Forces the UI to refresh the Last Update Text
@@ -210,6 +220,9 @@ namespace NewTVPredictions.ViewModels
                 {
                     TopModelChanged = true;
                     LastUpdate = DateTime.Now;
+
+                    if (TopModelLocked is null)
+                        TopModelLocked = false;
                 }
 
                 //check if second child beats new second place as well

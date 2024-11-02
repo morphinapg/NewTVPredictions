@@ -43,6 +43,8 @@ namespace NewTVPredictions.ViewModels
 
                 if (x.MarginOfError is null)
                     x.MarginOfError = new();
+
+                x.TopModelLocked = null;
             });
 
             //Reset secondary branch for each Evolution model

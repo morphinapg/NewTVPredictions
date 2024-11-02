@@ -24,6 +24,7 @@
         </Style>
       </DataGrid.Styles>
       <DataGrid.Columns>
+        <DataGridTextColumn Binding="{Binding Checkmark}" FontSize="24"/>
         <DataGridTextColumn Header="Network" Binding="{Binding Name}" FontSize="24"/>
         <DataGridTemplateColumn>
           <DataTemplate>
