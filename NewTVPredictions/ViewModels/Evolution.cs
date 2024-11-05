@@ -9,6 +9,7 @@ using System.Runtime.Serialization;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using MathNet.Numerics.Distributions;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -51,7 +52,15 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        /// <summary>
+        /// Represent the margins of error for each (CurrentEpisode, TotalEpisode) episode pair
+        /// </summary>
+        public ConcurrentDictionary<EpisodePair, double> MarginOfError = new();
+
         double? _oldAccuracy = null;
+        /// <summary>
+        /// The Accuracy of the Evolution model at the start of training
+        /// </summary>
         public double? OldAccuracy
         {
             get => _oldAccuracy;
@@ -63,6 +72,9 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        /// <summary>
+        /// How much the Accuracy of the model has improved since the start of training
+        /// </summary>
         public string? AccuracyChange
         {
             get
@@ -83,6 +95,9 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        /// <summary>
+        /// A double value representative of AccuracyChange
+        /// </summary>
         public double? ActualChange => (Accuracy - OldAccuracy) * 100;
 
         /// <summary>
@@ -123,7 +138,14 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        /// <summary>
+        /// This represents whether a model has remained consistent for at least 60 seconds at any time during training, suggesting that the model is settling on a possible optimal state
+        /// </summary>
         public bool? TopModelLocked = null;
+
+        /// <summary>
+        /// Displays a checkmark next to the network name on HomePage if TopModelLocked is ever set to true
+        /// </summary>
         public string? Checkmark => TopModelLocked == true && OldAccuracy is not null ? "✔️" : null;
 
         /// <summary>
@@ -298,20 +320,6 @@ namespace NewTVPredictions.ViewModels
             }            
         }
 
-        ///// <summary>
-        ///// Get the predicted Odds for a given show in its current state
-        ///// </summary>
-        ///// <param name="Show">Show to be tested</param>
-        ///// <returns>Percentage odds of renewal</returns>
-        //public double GetOdds(Show Show)
-        //{
-        //    var AllOutputs = TopModel1.GetPerformanceAndThreshold(Show);
-
-        //    var Episodes = new EpisodePair(Math.Min(Show.Ratings.Count, Show.Viewers.Count), Show.Episodes);
-
-        //    return GetOdds(AllOutputs, Episodes);
-        //}
-
         /// <summary>
         /// Update the Accuracy and Error of the top performing model for the UI
         /// </summary>
@@ -327,6 +335,11 @@ namespace NewTVPredictions.ViewModels
             }            
         }
 
+        /// <summary>
+        /// Generate predictions for a given year
+        /// </summary>
+        /// <param name="year">The year to predict</param>
+        /// <param name="parallel">Whether to set show parameters in parallel (Important to avoid updating UI in non-UI thread)</param>
         public void GeneratePredictions(int year, bool parallel)
         {
 
@@ -395,24 +408,11 @@ namespace NewTVPredictions.ViewModels
 
                     TargetViewers = TopModel.GetRatingsPerformance(TargetViewers, ViewerAverages[year], 1);
 
-                    //double
-                    //    CurrentPerformance1 = CurrentRating - TargetRating,
-                    //    CurrentPerformance2 = CurrentViewers - TargetViewers,
-                    //    CurrentPerformance = CurrentPerformance1 * Blend + CurrentPerformance2 * (1 - Blend);
-
-
-                    //BlendedPerformance = CurrentRating * Blend + CurrentViewers * (1 - Blend);
-                    //BlendedThreshold = TargetRating * Blend + TargetViewers * (1 - Blend);
-
 
                     CurrentRating = Math.Pow(10,CurrentRating);
                     CurrentViewers = Math.Pow(10,CurrentViewers);
                     TargetRating = Math.Pow(10,TargetRating);
                     TargetViewers = Math.Pow(10,TargetViewers);
-                    //BlendedPerformance = Math.Pow(10,BlendedPerformance);
-                    //BlendedThreshold = Math.Pow(10, BlendedThreshold);
-
-                    //CurrentPerformance = Math.Pow(10, CurrentPerformance);
 
 
                     if (parallel)
@@ -489,6 +489,19 @@ namespace NewTVPredictions.ViewModels
             }
 
             MarginOfError = other.MarginOfError is null ? new() : new ConcurrentDictionary<EpisodePair, double>(other.MarginOfError);
+        }
+
+        /// <summary>
+        /// Get the renewal odds of a show, given the Performance and Threshold.
+        /// MarginOfError needs to have been calculated already
+        /// </summary>
+        /// <param name="outputs">Output of GetPerformanceAndThreshold</param>
+        /// <returns>Percentage odds of renewal</returns>
+        public double GetOdds(double ShowPerformance, double ShowThreshold, EpisodePair Episodes)
+        {
+            var Normal = new Normal(ShowThreshold, MarginOfError[Episodes]);
+
+            return Normal.CumulativeDistribution(ShowPerformance);
         }
     }
 }

@@ -15,13 +15,7 @@ namespace NewTVPredictions.ViewModels
     [DataContract]
     public class Predictable : ViewModelBase, IComparable<Predictable>
     {
-        //[DataMember]
-        //public double? MarginOfError, RatingMargin, ViewerMargin;
-
-        public ConcurrentDictionary<EpisodePair, double>
-            MarginOfError = new(),
-            RatingMargin = new(),
-            ViewerMargin = new();
+        
 
         [DataMember]
         double? _error;                                     //Representation of how many incorrect predictions there were, and by how much
@@ -58,55 +52,6 @@ namespace NewTVPredictions.ViewModels
         public string NetworkName;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
-
-        /// <summary>
-        /// Calculate the Margin of Error for these prediction results
-        /// </summary>
-        public void CalculateMarginOfError(IEnumerable<ShowErrorContainer> PredictionResults, IEnumerable<EpisodePair> EpisodePairs, bool BlendedOnly = false)
-        {
-            var MarginActions = GetMarginActions(PredictionResults, EpisodePairs, BlendedOnly);
-
-            Parallel.ForEach(MarginActions, x => x());
-        }
-
-        /// <summary>
-        /// Get all actions needed to calculate the margins of error
-        /// </summary>
-        public IEnumerable<Action> GetMarginActions(IEnumerable<ShowErrorContainer> PredictionResults, IEnumerable<EpisodePair> EpisodePairs, bool BlendedOnly)
-        {
-            return EpisodePairs.Select<EpisodePair, Action>(x => () => CalculateMargins(PredictionResults, x, BlendedOnly));
-        }
-
-        public void CalculateMargins(IEnumerable<ShowErrorContainer> PredictionResults, EpisodePair Episodes, bool BlendedOnly)
-        {
-            double
-                Lowest = Math.Max((Episodes.Current - 1.0) / Episodes.Total, 0),
-                Highest = Math.Min((Episodes.Current + 1.0) / Episodes.Total, 1);
-
-            //First, we find the Margin Of Error for blended predictions
-            var Incorrect = PredictionResults.Where(x => !x.PredictionCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.BlendedDistance).Select(x => new StatsContainer(x.BlendedDistance, x.Weight)).ToList();
-            var Correct = PredictionResults.Where(x => x.PredictionCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.BlendedDistance).Select(x => new StatsContainer(x.BlendedDistance, x.Weight)).ToList();
-
-            var margin = GetMargin(Incorrect, Correct);
-            MarginOfError[Episodes] = margin != 0 ? margin : 100;
-
-            if (!BlendedOnly)
-            {
-                //Next, find the margin of error for ratings predictions
-                Incorrect = PredictionResults.Where(x => !x.RatingCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.RatingDistance).Select(x => new StatsContainer(x.RatingDistance, x.Weight)).ToList();
-                Correct = PredictionResults.Where(x => x.RatingCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.RatingDistance).Select(x => new StatsContainer(x.RatingDistance, x.Weight)).ToList();
-
-                margin = GetMargin(Incorrect, Correct);
-                    RatingMargin[Episodes] = margin != 0 ? margin : 100;
-
-                //Finally, find the margin of error for viewers predictions
-                Incorrect = PredictionResults.Where(x => !x.ViewerCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.ViewerDistance).Select(x => new StatsContainer(x.ViewerDistance, x.Weight)).ToList();
-                Correct = PredictionResults.Where(x => x.ViewerCorrect && x.CurrentPosition > Lowest && x.CurrentPosition < Highest).OrderBy(x => x.ViewerDistance).Select(x => new StatsContainer(x.ViewerDistance, x.Weight)).ToList();
-
-                margin = GetMargin(Incorrect, Correct);
-                    ViewerMargin[Episodes] = margin != 0 ? margin : 100;
-            }            
-        }
 
         /// <summary>
         /// Calculate a margin of error, by comparing Incorrect and Correct predictions
@@ -189,43 +134,6 @@ namespace NewTVPredictions.ViewModels
 
 
             return (IncorrectMargin * IncorrectTotal + CorrectMargin * CorrectTotal) / (IncorrectTotal + CorrectTotal);
-        }
-
-        /// <summary>
-        /// Given a series of actions, set the model's Accuracy and Error
-        /// </summary>
-        /// <param name="RatingResults">Actions needed to calculate error on the RatingsModel</param>
-        /// <param name="PredictionResults">Actions needed to calculate error on the PredictionModel</param>
-        public void SetAccuracyAndError(IEnumerable<ErrorContainer> RatingsResults, IEnumerable<ShowErrorContainer> PredictionResults, IEnumerable<EpisodePair> EpisodePairs)
-        {
-            var PredictionWeights = PredictionResults.Sum(x => x.Weight);
-            var PredictionTotals = PredictionResults.Select(x => x.PredictionCorrect ? x.Weight : 0).Sum();
-
-            Accuracy = PredictionTotals / PredictionWeights;
-
-            PredictionTotals = PredictionResults.Sum(x => x.Error * x.Weight);
-
-            //Now we can get the total error
-            var RatingsWeights = RatingsResults.Sum(x => x.Weight);
-            var RatingsTotals = RatingsResults.Sum(x => x.Error * x.Weight);
-
-            var AllWeights = PredictionWeights + RatingsWeights;
-            var AllTotals = PredictionTotals + RatingsTotals;
-
-            Error = AllTotals / AllWeights;                
-        }
-
-        /// <summary>
-        /// Get the renewal odds of a show, given the Performance and Threshold.
-        /// MarginOfError needs to have been calculated already
-        /// </summary>
-        /// <param name="outputs">Output of GetPerformanceAndThreshold</param>
-        /// <returns>Percentage odds of renewal</returns>
-        public double GetOdds(double ShowPerformance, double ShowThreshold, EpisodePair Episodes)
-        {
-            var Normal = new Normal(ShowThreshold, MarginOfError[Episodes]);
-
-            return Normal.CumulativeDistribution(ShowPerformance);
         }
 
         public override int GetHashCode() => new {Network.Name, Accuracy, Error, Duplicate}.GetHashCode();
@@ -326,6 +234,16 @@ namespace NewTVPredictions.ViewModels
                 return false;
         }
 
+        /// <summary>
+        /// Test the accuracy of a model, optionally filtered by a specific CurrentEpisode/TotalEpisodes range for MarginOfError calculation
+        /// </summary>
+        /// <param name="Model">The PredictionModel to test</param>
+        /// <param name="Stats">Statistics needed during accuracy testing</param>
+        /// <param name="WeightedShows">A list of all shows marked as renewed or canceled from a network, with their associated weights</param>
+        /// <param name="CalculateMargin">Whether to calculate a Margin of Error based on the provided CurrentEpisode/TotalEpisode</param>
+        /// <param name="CurrentEpisode">Represents how many episodes into a TV show that is being tested</param>
+        /// <param name="TotalEpisodes">Represents total number of episodes a TV show will have for the season</param>
+        /// <returns></returns>
         public double[] TestAccuracy(PredictionModel Model, PredictionStats Stats, IEnumerable<WeightedShow> WeightedShows, bool CalculateMargin = false, int CurrentEpisode = 0, int TotalEpisodes = 26)
         {
             ConcurrentDictionary<(Show, int), double>

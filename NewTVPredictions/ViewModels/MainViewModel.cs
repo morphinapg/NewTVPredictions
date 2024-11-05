@@ -496,6 +496,8 @@ public partial class MainViewModel : ViewModelBase
         {
             ImportVisible = false;
 
+            UpdateSummerShows();
+
             foreach (var network in Networks)
                 network.Database_Modified += Network_Database_Modified;
 
@@ -742,6 +744,7 @@ public partial class MainViewModel : ViewModelBase
             await Task.Run(() =>
             {
                 Parallel.ForEach(Networks.SelectMany(x => x.Shows), x => x.CurrentOdds = null);
+                UpdateSummerShows();
 
                 foreach (var network in Networks)
                     network.Database_Modified += Network_Database_Modified;
@@ -889,6 +892,14 @@ public partial class MainViewModel : ViewModelBase
         return null;
     }
 
+    /// <summary>
+    /// Save data to a PrimaryPath, with a backup made to BackupPath
+    /// </summary>
+    /// <typeparam name="T">Type of data being saved</typeparam>
+    /// <param name="PrimaryPath">The filename of the data being saved</param>
+    /// <param name="BackupPath">The filename where the data will be backed up</param>
+    /// <param name="Item">The data to save</param>
+    /// <returns></returns>
     async Task SaveDataAsync<T>(string PrimaryPath, string BackupPath, T Item) where T : class
     {
         try
@@ -949,6 +960,8 @@ public partial class MainViewModel : ViewModelBase
     {
         DatabaseSaving = true;
         DatabaseSave.Start();
+
+        UpdateSummerShows();
     }
 
     /// <summary>
@@ -961,6 +974,9 @@ public partial class MainViewModel : ViewModelBase
     }
 
     bool _databaseSaving, _evolutionSaving;
+    /// <summary>
+    /// Notifies the app that the database is currently saving
+    /// </summary>
     public bool DatabaseSaving
     {
         get => _databaseSaving;
@@ -970,6 +986,10 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(IsSaving));
         }
     }
+
+    /// <summary>
+    /// Notifies the app that the Evolution state is currently saving
+    /// </summary>
     public bool EvolutionSaving
     {
         get => _evolutionSaving;
@@ -980,10 +1000,19 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Notifies the app if any file is currently being saved
+    /// </summary>
     public bool IsSaving => DatabaseSaving || EvolutionSaving;
 
+    /// <summary>
+    /// Command to finalize the weekly predictions, so that next week's predictions can be compared
+    /// </summary>
     public CommandHandler Finalize_Click => new CommandHandler(SaveState);
 
+    /// <summary>
+    /// Saving the state of this week's predictions
+    /// </summary>
     async void SaveState()
     {
         var msg = MessageBoxManager.GetMessageBoxStandard("Are you sure?", "This will replace the previously saved prediction state. Continue?", ButtonEnum.YesNo);
@@ -999,7 +1028,7 @@ public partial class MainViewModel : ViewModelBase
 
                 var NetworkYears = Networks.Where(x => x is not null && x.Evolution is not null).Select(network => network.Shows.Select(y => y.Year).Where(x => x is not null).Distinct().Select(year => new { Network = network, Year = year })).SelectMany(x => x);
 
-                Parallel.ForEach(NetworkYears, x => x.Network!.Evolution!.GeneratePredictions(x.Year!.Value, false));
+                Parallel.ForEach(NetworkYears, x => x.Network!.Evolution!.GeneratePredictions(x.Year!.Value, CurrentPredictions is null));
 
                 Parallel.ForEach(Networks.SelectMany(x => x.Shows), x =>
                 {
@@ -1018,6 +1047,9 @@ public partial class MainViewModel : ViewModelBase
     }
 
     bool _saveVisible = true;
+    /// <summary>
+    /// Whether the Save Image button will be visible on the Predictions page
+    /// </summary>
     public bool SaveVisible
     {
         get => _saveVisible;
@@ -1028,8 +1060,14 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Command for saving an image of the predictions chart
+    /// </summary>
     public CommandHandler Save_Image => new CommandHandler(SaveImage);
 
+    /// <summary>
+    /// Save an image of the prediction chart
+    /// </summary>
     async void SaveImage()
     {
         var TopLevel = CurrentApp.TopLevel;
@@ -1059,4 +1097,97 @@ public partial class MainViewModel : ViewModelBase
             SaveVisible = true;
         }
     }
+
+    List<Show>? _possibleSummerShows;
+
+    /// <summary>
+    /// Return a list of shows that may air in the summer but are not flagged as such
+    /// </summary>
+    public List<Show> PossibleSummerShows
+    {
+        get
+        {
+            if (_possibleSummerShows is null)
+                UpdateSummerShows();
+
+            if (_possibleSummerShows is null)
+                return new();
+
+            return _possibleSummerShows;
+        }
+        set
+        {
+            _possibleSummerShows = value;
+            OnPropertyChanged(nameof(PossibleSummerShows));
+            OnPropertyChanged(nameof(PossibleSummerVisible));
+            OnPropertyChanged(nameof(SummerVisible));
+        }
+    }
+
+    List<Show>? _notSummerShows;
+
+    /// <summary>
+    /// return a list of shows that will likely be finished before summer, but are marked as summer shows
+    /// </summary>
+    public List<Show> NotSummerShows
+    {
+        get
+        {
+            if (_notSummerShows is null)
+                UpdateSummerShows();
+
+            if (_notSummerShows is null)
+                return new();
+
+            return _notSummerShows;
+        }
+        set
+        {
+            _notSummerShows = value;
+            OnPropertyChanged(nameof(NotSummerShows));
+            OnPropertyChanged(nameof(NotSummerVisible));
+            OnPropertyChanged(nameof(SummerVisible));
+        }
+    }
+
+    /// <summary>
+    /// Update the summer show lists
+    /// </summary>
+    async void UpdateSummerShows()
+    {
+        //Check for shows that might air during the summer
+
+        var Now = DateTime.Now;
+
+        var ThisYear = Now.Year;
+
+        var SummerYear = Now.Month < 9 ? ThisYear : ThisYear + 1;
+
+        var SummerStart = new DateTime(SummerYear, 6, 1);
+
+        var WeeksToGo = Math.Max(Math.Ceiling((SummerStart - Now).TotalDays / 7), 0);
+
+        var CurrentYearShows = Networks.SelectMany(x => x.Shows).Where(x => x.Year == CurrentApp.CurrentYear);
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            _possibleSummerShows = CurrentYearShows.Where(x => (x.Episodes - x.CurrentEpisodes) > WeeksToGo && x.Factors.Where(f => f.Text.ToLower().Contains("summer") && !f.IsTrue).Any()).ToList();
+
+            //Check for shows that are marked as summer shows but should be finished before summer starts
+
+            _notSummerShows = CurrentYearShows.Where(x => (x.Episodes - x.CurrentEpisodes) < WeeksToGo && x.Factors.Where(f => f.Text.ToLower().Contains("summer") && f.IsTrue).Any()).ToList();
+        });    
+    }
+
+    /// <summary>
+    /// Determine whether to display the flyout for summer shows
+    /// </summary>
+    public bool PossibleSummerVisible => PossibleSummerShows.Any();
+
+    /// <summary>
+    /// Determine whether to display the flyout for non-summer shows
+    /// </summary>
+    public bool NotSummerVisible => NotSummerShows.Any();
+
+    public bool SummerVisible => PossibleSummerVisible || NotSummerVisible;
 }

@@ -57,7 +57,29 @@
     </Grid>
 
     <Grid Grid.Column="1" Background="#40000000" RowDefinitions="Auto,*">
-      <DatePicker HorizontalAlignment="Right" MonthVisible="False" DayVisible="False" Margin="35" SelectedDate="{Binding SelectedYear}" x:Name="YearPicker" VerticalAlignment="Center" IsEnabled="{Binding SidepanelEnabled}"/>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Padding="15,5" Background="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding SummerVisible}" >
+          <Grid>
+            <TextBlock Text="⚠️" FontSize="24" Foreground="Goldenrod"/>
+          </Grid>
+
+          <Button.Flyout>
+            <Flyout>
+              <StackPanel>
+                <StackPanel IsVisible="{Binding PossibleSummerVisible}">
+                  <TextBlock Text="Possible Summer Shows"/>
+                  <ListBox ItemsSource="{Binding PossibleSummerShows}"/>
+                </StackPanel>
+                <StackPanel IsVisible="{Binding NotSummerVisible}">
+                  <TextBlock Text="Shows Possibly Marked Incorrectly For Summer"/>
+                  <ListBox ItemsSource="{Binding NotSummerShows}"/>
+                </StackPanel>
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+        <DatePicker HorizontalAlignment="Right" MonthVisible="False" DayVisible="False" Margin="35" SelectedDate="{Binding SelectedYear}" x:Name="YearPicker" VerticalAlignment="Center" IsEnabled="{Binding SidepanelEnabled}"/>
+      </StackPanel>      
       
       <TextBlock Text="TV Predictions" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="24" FontSize="24" FontWeight="Bold"/>
 

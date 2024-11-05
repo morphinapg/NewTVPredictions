@@ -287,6 +287,11 @@ namespace NewTVPredictions.ViewModels
             return RenewalModel.GetOutput(inputs);
         }
 
+        /// <summary>
+        /// Hooks into the Predictable.TestAccuracy, saving outputs specific to PredictionModel
+        /// </summary>
+        /// <param name="Stats">Statistics needing during accuracy testing</param>
+        /// <param name="WeightedShows">A list of shows marked renewed/canceled, and their associated weights</param>
         public void TestAccuracy(PredictionStats Stats, IEnumerable<WeightedShow> WeightedShows)
         {
             var outputs = TestAccuracy(this, Stats, WeightedShows);
@@ -312,68 +317,6 @@ namespace NewTVPredictions.ViewModels
             RenewalModel = x.RenewalModel + y.RenewalModel;
             Network = x.Network;
             NetworkName = x.NetworkName;
-
-            //The margins of error will ultimately be rewritten when TestAccuracy is calculated
-            //But because they are needed to calculate the error value of renanceled shows (renewed for final season)
-            //a temporary estimate will be retained which is the average of the two values
-            //In all likelihood, this value should be pretty close to the final calculated margins
-
-            //var AllKeys =
-            //    x.MarginOfError.Keys
-            //    .Concat(y.MarginOfError.Keys)
-            //    .Concat(x.RatingMargin.Keys)
-            //    .Concat(y.RatingMargin.Keys)
-            //    .Concat(x.ViewerMargin.Keys)
-            //    .Concat(y.ViewerMargin.Keys)
-            //    .Distinct();
-
-            //foreach (var Key in AllKeys)
-            //{
-            //    //First, set MarginOfError
-            //    double? value1 = null, value2 = null;
-            //    if (x.MarginOfError.ContainsKey(Key))
-            //        value1 = x.MarginOfError[Key];
-
-            //    if (y.MarginOfError.ContainsKey(Key))
-            //        value2 = y.MarginOfError[Key];
-
-            //    var avg = new[] { value1, value2 }.Average();
-
-            //    if (avg is not null)
-            //        MarginOfError[Key] = avg.Value;
-
-            //    //Next, set RatingMargin
-
-            //    value1 = null;
-            //    value2 = null;
-
-            //    if (x.RatingMargin.ContainsKey(Key))
-            //        value1 = x.RatingMargin[Key];
-
-            //    if (y.RatingMargin.ContainsKey(Key))
-            //        value2 = y.RatingMargin[Key];
-
-            //    avg = new[] { value1, value2 }.Average();
-
-            //    if (avg is not null)
-            //        RatingMargin[Key] = avg.Value;
-
-            //    //Finally, set ViewerMargin
-
-            //    value1 = null;
-            //    value2 = null;
-
-            //    if (x.ViewerMargin.ContainsKey(Key))
-            //        value1 = x.ViewerMargin[Key];
-
-            //    if (y.ViewerMargin.ContainsKey(Key))
-            //        value2 = y.ViewerMargin[Key];
-
-            //    avg = new[] { value1, value2 }.Average();
-
-            //    if (avg is not null)
-            //        ViewerMargin[Key] = avg.Value;
-            //}
         }
 
         public static PredictionModel operator+(PredictionModel x, PredictionModel y)
@@ -399,21 +342,9 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
-        double GetRatingsError(int Episodes, double SeasonAverage, double Rating, int InputType)
-        {
-            var NumberOfInputs = Episodes + 1;
-            var inputs = new double[NumberOfInputs];
-
-            inputs[0] = Episodes;
-            inputs[1] = Episodes;
-            for (int i = 0; i < Episodes; i++)
-                inputs[i + 2] = Rating - SeasonAverage;
-
-            var output = RatingsModel.GetOutput(inputs, InputType)[0];
-
-            return output - Rating;
-        }
-
+        /// <summary>
+        /// In the event that mutations have not happened across an entire generation, it's suggested to increase the mutation rate of the model
+        /// </summary>
         public void IncreaseMutationRate()
         {
             var r = Random.Shared;
@@ -424,6 +355,13 @@ namespace NewTVPredictions.ViewModels
                 RenewalModel.IncreaseMutationRate();
         }
 
+        /// <summary>
+        /// Scales the output of RatingsModel to fit the statistical average/deviation of the data, as measured during testing
+        /// </summary>
+        /// <param name="Rating">The calculated rating/viewer number being tested</param>
+        /// <param name="RatingsAverage">The expected average rating for the year</param>
+        /// <param name="InputType">0 = Ratings, 1 = Viewers</param>
+        /// <returns></returns>
         public  double GetRatingsPerformance(double Rating, double RatingsAverage, int InputType)
         {
             double?
@@ -438,6 +376,13 @@ namespace NewTVPredictions.ViewModels
                         Rating + RatingsAverage;
         }
 
+
+        /// <summary>
+        /// Scales the blended performance to fit the statistical deviations of both ratings and viewers
+        /// </summary>
+        /// <param name="BlendedDifference">The calculated blended difference compared to the season average</param>
+        /// <param name="Blend">The blend factor</param>
+        /// <returns></returns>
         public double GetCurrentPerformance(double BlendedDifference, double Blend)
         {
             double? scale = (Network.RatingsDev / RatingsDev) * Blend + (Network.ViewersDev / ViewersDev) * (1 - Blend);
