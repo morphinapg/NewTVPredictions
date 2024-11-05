@@ -413,7 +413,8 @@ namespace NewTVPredictions.ViewModels
                     CurrentViewers = Math.Pow(10,CurrentViewers);
                     TargetRating = Math.Pow(10,TargetRating);
                     TargetViewers = Math.Pow(10,TargetViewers);
-
+                    RatingsProjection = Math.Pow(10, RatingsProjection + RatingsAverages[year]);
+                    ViewersProjection = Math.Pow(10, ViewersProjection + ViewerAverages[year]);
 
                     if (parallel)
                     {
@@ -423,9 +424,11 @@ namespace NewTVPredictions.ViewModels
                         x.TargetViewers = TargetViewers;
                         x.CurrentPerformance = CurrentPerformance;
                         x.CurrentOdds = CurrentOdds;
+                        x.ProjectedRating = RatingsProjection;
+                        x.ProjectedViewers = ViewersProjection;
                     }
                     else
-                        Predictions[x] = new PredictionContainer(CurrentRating, CurrentViewers, CurrentPerformance, TargetRating, TargetViewers, CurrentOdds);
+                        Predictions[x] = new PredictionContainer(CurrentRating, CurrentViewers, CurrentPerformance, TargetRating, TargetViewers, CurrentOdds, RatingsProjection, ViewersProjection);
                 });
 
                 if (!parallel)
@@ -438,6 +441,8 @@ namespace NewTVPredictions.ViewModels
                         Show.TargetViewers = Prediction.TargetViewers;
                         Show.CurrentPerformance = Prediction.CurrentPerformance;
                         Show.CurrentOdds = Prediction.CurrentOdds;
+                        Show.ProjectedRating = Prediction.ProjectedRating;
+                        Show.ProjectedViewers= Prediction.ProjectedViewers;
                     }
             }            
         }

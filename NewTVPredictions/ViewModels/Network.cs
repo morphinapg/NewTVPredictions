@@ -274,6 +274,7 @@ namespace NewTVPredictions.ViewModels
             {
                 FilteredShows = new ObservableCollection<Show>(tmpShows);
                 AlphabeticalShows = new ObservableCollection<Show>(alphabetical);
+                OnPropertyChanged(nameof(OrderedShows));
             });
         }
 
@@ -602,7 +603,6 @@ namespace NewTVPredictions.ViewModels
             return projectedRating;
         }
 
-
         public event EventHandler? Database_Modified;
 
 
@@ -666,5 +666,10 @@ namespace NewTVPredictions.ViewModels
                 ResetShow();
             }
         }
+
+        /// <summary>
+        /// A list of all current shows, ordered by best performing first
+        /// </summary>
+        public List<Show> OrderedShows => FilteredShows.OrderByDescending(x => x.CurrentPerformance).ToList();
     }
 }

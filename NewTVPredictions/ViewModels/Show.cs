@@ -14,6 +14,7 @@ using Avalonia.Media;
 using System.Runtime.CompilerServices;
 using System.Reflection;
 using Avalonia.Threading;
+using System.Timers;
 
 namespace NewTVPredictions.ViewModels
 {
@@ -162,7 +163,16 @@ namespace NewTVPredictions.ViewModels
             Viewers = new();
 
         List<RatingsInfo> _ratingsContainer = new();
+        /// <summary>
+        /// RatingsContainer holds a ViewModel for the ratings and viewer data, necessary for the EditRatings View
+        /// </summary>
         public List<RatingsInfo> RatingsContainer => _ratingsContainer;
+
+        /// <summary>
+        /// Timer for temporarily displaying the odds for any show that is clicked
+        /// </summary>
+        Timer ResetOdds = new(2000) { AutoReset = false };
+        bool OddsDisplayed = false;
 
         /// <summary>
         /// Initialize RatingsInfo with every new Show
@@ -170,8 +180,13 @@ namespace NewTVPredictions.ViewModels
         public Show()
         {
             ResetRatingsContainer();
-        }
 
+            ResetOdds.Elapsed += ResetOdds_Elapsed;
+        }
+        
+        /// <summary>
+        /// Initialize the RatingsContainer
+        /// </summary>
         public void ResetRatingsContainer()
         {
             _ratingsContainer = new();
@@ -183,7 +198,9 @@ namespace NewTVPredictions.ViewModels
         }
 
         public event EventHandler? RatingsChanged;
-
+        /// <summary>
+        /// Trigger an event if the ratings have changed. Allows MainViewModel to know when to save the database.
+        /// </summary>
         private void Show_RatingsChanged(object? sender, EventArgs e)
         {
             RatingsChanged?.Invoke(this, e);
@@ -267,7 +284,7 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         public double? CurrentOdds
         {
-            get => string.IsNullOrWhiteSpace(RenewalStatus) ? _currentOdds : null;
+            get => string.IsNullOrWhiteSpace(RenewalStatus) || OddsDisplayed ? _currentOdds : null;
             set
             {
                 _currentOdds = value;
@@ -344,6 +361,8 @@ namespace NewTVPredictions.ViewModels
                     else
                         return "Certain Renewal";
                 }
+                else if (OddsDisplayed)
+                    return "Temporarily displaying odds...";
                 else
                     return RenewalStatus;
             }
@@ -443,6 +462,8 @@ namespace NewTVPredictions.ViewModels
 
             RatingsContainer.Add(new RatingsInfo(Ratings, "Ratings"));
             RatingsContainer.Add(new RatingsInfo(Viewers, "Viewers"));
+
+            ResetOdds.Elapsed += ResetOdds_Elapsed;
 
             if (this != other)
             {
@@ -603,5 +624,58 @@ namespace NewTVPredictions.ViewModels
         /// The current number of episodes that have aired
         /// </summary>
         public int CurrentEpisodes => Math.Max(Ratings.Count, Viewers.Count);
+        
+        /// <summary>
+        /// Temporarily set the show to display the odds on screen for a short amount of time before reverting.
+        /// Useful for shows that are already renewed or canceled, and therefore don't normally display odds.
+        /// </summary>
+        public void DisplayOdds()
+        {
+            OddsDisplayed = true;
+            OnPropertyChanged(nameof(PredictionStatus));
+            OnPropertyChanged(nameof(CurrentOdds));
+            ResetOdds.Start();
+        }
+
+        /// <summary>
+        /// Reset OddsDisplayed after a short amount of time
+        /// </summary>
+        private void ResetOdds_Elapsed(object? sender, ElapsedEventArgs e)
+        {
+            OddsDisplayed = false;
+            OnPropertyChanged(nameof(PredictionStatus));
+            OnPropertyChanged(nameof(CurrentOdds));
+        }
+
+        /// <summary>
+        /// Display the actual Average ratings for a show
+        /// </summary>
+        public double? AverageRating => Ratings.Average();
+
+        /// <summary>
+        /// Display the actual Average viewers for a show
+        /// </summary>
+        public double? AverageViewers => Viewers.Average();
+
+        double? _projectedRating, _projectedViewers;
+
+        public double? ProjectedRating
+        {
+            get => _projectedRating;
+            set
+            {
+                _projectedRating = value;
+                OnPropertyChanged(nameof(ProjectedRating));
+            }
+        }
+        public double? ProjectedViewers
+        {
+            get => _projectedViewers;
+            set
+            {
+                _projectedViewers = value;
+                OnPropertyChanged(nameof(ProjectedViewers));
+            }
+        }
     }
 }

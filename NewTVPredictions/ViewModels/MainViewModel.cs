@@ -236,6 +236,7 @@ public partial class MainViewModel : ViewModelBase
     EditRatings? CurrentEditRatings;
     ModifyShow? CurrentModifyShow;
     ShowsByFactor? CurrentShowsByFactor;
+    ShowsByRating? CurrentShowsByRating;
 
     /// <summary>
     /// Switch to a tab on the NetworkHome page
@@ -296,6 +297,17 @@ public partial class MainViewModel : ViewModelBase
 
                 SelectedNetwork?.ResetShow();
                 SelectedNetwork?.Factor_Toggled(this, new EventArgs());
+
+                break;
+            case SHOWS_BY_RATING:
+                if (SelectedNetwork is not null && SelectedNetwork.Evolution is not null)
+                    SelectedNetwork.Evolution.GeneratePredictions(CurrentYear, CurrentPredictions is null);
+
+                if (CurrentShowsByRating is null)
+                    CurrentShowsByRating = new();
+
+                if (SubPage?.Content is not ShowsByRating)
+                    await ReplacePage(SubPage!, CurrentShowsByRating);
 
                 break;
         }
@@ -1190,4 +1202,21 @@ public partial class MainViewModel : ViewModelBase
     public bool NotSummerVisible => NotSummerShows.Any();
 
     public bool SummerVisible => PossibleSummerVisible || NotSummerVisible;
+    /// <summary>
+    /// Allow the user to select a show from the Summer Shows flyout, and open the ModifyShow page for that show
+    /// </summary>
+    public Show? SummerShow
+    {
+        get => null;
+        set
+        {
+            if (value is Show show && show.Parent is Network network)
+            {
+                SelectedNetwork = network;
+                SelectedTabIndex = MODIFY_SHOW;
+                SwitchTab();
+                network.CurrentShow = show;
+            }
+        }
+    }
 }

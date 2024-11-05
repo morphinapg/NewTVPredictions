@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:NewTVPredictions.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="NewTVPredictions.ShowsByRating" x:DataType="vm:MainViewModel">
+  <StackPanel DataContext="{Binding SelectedNetwork}" HorizontalAlignment="Center">
+    <TextBlock Text="Shows by Rating" FontSize="32" HorizontalAlignment="Center" Margin="10"/>
+    <DataGrid HorizontalAlignment="Center" ItemsSource="{Binding OrderedShows}">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Show Name" Binding="{Binding Name}"/>
+        <DataGridTextColumn Header="Average Rating" Binding="{Binding AverageRating, StringFormat=N3}"/>
+        <DataGridTextColumn Header="Projected Rating" Binding="{Binding ProjectedRating, StringFormat=N3}"/>
+        <DataGridTextColumn Header="Predicted Rating" Binding="{Binding CurrentRating, StringFormat=N3}"/>
+        <DataGridTextColumn Header="Average Viewers (M)" Binding="{Binding AverageViewers, StringFormat=N3}"/>
+        <DataGridTextColumn Header="Projected Viewers (M)" Binding="{Binding ProjectedViewers, StringFormat=N3}"/>
+        <DataGridTextColumn Header="Predicted Viewers (M)" Binding="{Binding CurrentViewers, StringFormat=N3}"/>
+      </DataGrid.Columns>
+    </DataGrid>
+  </StackPanel>
+</UserControl>

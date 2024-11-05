@@ -68,11 +68,11 @@
               <StackPanel>
                 <StackPanel IsVisible="{Binding PossibleSummerVisible}">
                   <TextBlock Text="Possible Summer Shows"/>
-                  <ListBox ItemsSource="{Binding PossibleSummerShows}"/>
+                  <ListBox ItemsSource="{Binding PossibleSummerShows}" SelectedItem="{Binding SummerShow}"/>
                 </StackPanel>
                 <StackPanel IsVisible="{Binding NotSummerVisible}">
                   <TextBlock Text="Shows Possibly Marked Incorrectly For Summer"/>
-                  <ListBox ItemsSource="{Binding NotSummerShows}"/>
+                  <ListBox ItemsSource="{Binding NotSummerShows}" SelectedItem="{Binding SummerShow}"/>
                 </StackPanel>
               </StackPanel>
             </Flyout>
