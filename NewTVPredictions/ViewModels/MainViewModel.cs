@@ -167,7 +167,21 @@ public partial class MainViewModel : ViewModelBase
         get => _selectedNetwork;
         set
         {
+            bool FinalPredictions = true, ShowAllYears = false;
+
+            if (_selectedNetwork is not null)
+            {
+                FinalPredictions = _selectedNetwork.FinalPredictions;
+                ShowAllYears = _selectedNetwork.ShowAllYears;
+            }    
+
             _selectedNetwork = value;
+
+            if (_selectedNetwork is not null)
+            {
+                _selectedNetwork.FinalPredictions = FinalPredictions;
+                _selectedNetwork.ShowAllYears = ShowAllYears;
+            }
             
             OnPropertyChanged(nameof(SelectedNetwork));           
 
@@ -237,6 +251,7 @@ public partial class MainViewModel : ViewModelBase
     ModifyShow? CurrentModifyShow;
     ShowsByFactor? CurrentShowsByFactor;
     ShowsByRating? CurrentShowsByRating;
+    PredictionAccuracy? CurrentPredictionAccuracy;
 
     /// <summary>
     /// Switch to a tab on the NetworkHome page
@@ -308,6 +323,17 @@ public partial class MainViewModel : ViewModelBase
 
                 if (SubPage?.Content is not ShowsByRating)
                     await ReplacePage(SubPage!, CurrentShowsByRating);
+
+                break;
+            case PREDICTION_ACCURACY:
+                if (SelectedNetwork is not null && SelectedNetwork.Evolution is not null)
+                    SelectedNetwork.Evolution.GeneratePredictions(CurrentYear, CurrentPredictions is null);
+
+                if (CurrentPredictionAccuracy is null)
+                    CurrentPredictionAccuracy = new();
+
+                if (SubPage?.Content is not PredictionAccuracy)
+                    await ReplacePage(SubPage!, CurrentPredictionAccuracy);
 
                 break;
         }

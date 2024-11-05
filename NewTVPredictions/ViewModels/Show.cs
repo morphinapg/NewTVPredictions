@@ -216,6 +216,46 @@ namespace NewTVPredictions.ViewModels
         public double? FinalPrediction;
 
         /// <summary>
+        /// A string representing the final prediction for a show
+        /// </summary>
+        public string? FinalPredictionString
+        {
+            get
+            {
+                if (FinalPrediction is null)
+                    return null;
+
+                if (FinalPrediction < 0.2)
+                    return "Certain Cancellation";
+                else if (FinalPrediction < 0.4)
+                    return "Likely Cancellation";
+                else if (FinalPrediction < 0.5)
+                    return "Leaning Towards Cancellation";
+                else if (FinalPrediction < 0.6)
+                    return "Leaning Towards Renewal";
+                else if (FinalPrediction < 0.8)
+                    return "Likely Renewal";
+                else
+                    return "Certain Renewal";
+            }
+        }
+
+        public double? FinalOdds => FinalPrediction;
+
+        /// <summary>
+        /// Whether the final prediction was correct or not
+        /// </summary>
+        public bool PredictionCorrect => Renewed && FinalPrediction > 0.5 || Canceled && FinalPrediction < 0.5;
+        public bool CurrentPredictionCorrect => Renewed && ActualOdds > 0.5 || Canceled && ActualOdds < 0.5;
+
+        /// <summary>
+        /// An emoji to go along with PredictionCorrect
+        /// </summary>
+        public string PredictionEmoji => PredictionCorrect ? "✔️" : "❌";
+
+        public string CurrentEmoji => CurrentPredictionCorrect ? "✔️" : "❌";
+
+        /// <summary>
         /// The Projected Rating for the entire season
         /// based on existing ratings
         /// </summary>
@@ -365,6 +405,25 @@ namespace NewTVPredictions.ViewModels
                     return "Temporarily displaying odds...";
                 else
                     return RenewalStatus;
+            }
+        }
+
+        public string? CurrentPrediction
+        {
+            get
+            {
+                if (ActualOdds < 0.2)
+                    return "Certain Cancellation";
+                else if (ActualOdds < 0.4)
+                    return "Likely Cancellation";
+                else if (ActualOdds < 0.5)
+                    return "Leaning Towards Cancellation";
+                else if (ActualOdds < 0.6)
+                    return "Leaning Towards Renewal";
+                else if (ActualOdds < 0.8)
+                    return "Likely Renewal";
+                else
+                    return "Certain Renewal";
             }
         }
 

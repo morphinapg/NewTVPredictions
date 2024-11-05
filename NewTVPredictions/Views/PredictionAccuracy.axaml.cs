@@ -4,9 +4,9 @@ using Avalonia.Markup.Xaml;
 
 namespace NewTVPredictions;
 
-public partial class ShowsByRating : UserControl
+public partial class PredictionAccuracy : UserControl
 {
-    public ShowsByRating()
+    public PredictionAccuracy()
     {
         InitializeComponent();
     }

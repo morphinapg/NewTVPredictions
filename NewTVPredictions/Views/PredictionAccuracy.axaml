@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:NewTVPredictions.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="NewTVPredictions.PredictionAccuracy"  x:DataType="vm:MainViewModel">
+  <Grid DataContext="{Binding SelectedNetwork}" HorizontalAlignment="Center" RowDefinitions="Auto,*,Auto,Auto" ColumnDefinitions="*,*" x:DataType="vm:Network">
+    <TextBlock Text="Prediction Results" FontSize="32" HorizontalAlignment="Center" Margin="10" Grid.ColumnSpan="2"/>
+    <DataGrid Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" ItemsSource="{Binding FinalPredictedShows}" SelectionChanged="DataGrid_SelectionChanged" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" IsVisible="{Binding FinalPredictions}">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Show Name" Binding="{Binding Name}"/>
+        <DataGridTextColumn Header="Final Prediction" Binding="{Binding FinalPredictionString}"/>
+        <DataGridTextColumn Header="Final Odds" Binding="{Binding FinalOdds, StringFormat=P0}"/>
+        <DataGridTemplateColumn Header="Final Status">
+          <DataTemplate x:DataType="vm:Show">
+            <TextBlock Text="{Binding PredictionStatus}" Foreground="{Binding RenewalColor}" VerticalAlignment="Center"/>
+          </DataTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Prediction Correct?">
+          <DataTemplate x:DataType="vm:Show">
+            <TextBlock Text="{Binding PredictionEmoji}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </DataTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+    <DataGrid Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" ItemsSource="{Binding CurrentPredictedShows}" SelectionChanged="DataGrid_SelectionChanged" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" IsVisible="{Binding CurrentPredictions}">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Show Name" Binding="{Binding Name}"/>
+        <DataGridTemplateColumn Header="Current Prediction">
+          <DataTemplate x:DataType="vm:Show">
+            <TextBlock Text="{Binding CurrentPrediction}" VerticalAlignment="Center"/>
+          </DataTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTextColumn Header="Final Odds" Binding="{Binding ActualOdds, StringFormat=P0}"/>
+        <DataGridTemplateColumn Header="Final Status">
+          <DataTemplate x:DataType="vm:Show">
+            <TextBlock Text="{Binding PredictionStatus}" Foreground="{Binding RenewalColor}" VerticalAlignment="Center"/>
+          </DataTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Prediction Correct?">
+          <DataTemplate x:DataType="vm:Show">
+            <TextBlock Text="{Binding CurrentEmoji}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </DataTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" HorizontalAlignment="Center" Orientation="Horizontal" Margin="10">
+      <TextBlock Text="Prediction Accuracy: " FontSize="28"/>
+      <TextBlock HorizontalAlignment="Center" FontSize="28" Text="{Binding PredictionAccuracy, StringFormat=P2}"/>
+    </StackPanel>
+
+
+    <ToggleSwitch Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10"  OnContent="Final Predictions" OffContent="Current Predictions" IsChecked="{Binding FinalPredictions}"/>
+    <CheckBox Content="Show All Years" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10" IsChecked="{Binding ShowAllYears}"/>
+  </Grid>
+</UserControl>

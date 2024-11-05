@@ -275,6 +275,9 @@ namespace NewTVPredictions.ViewModels
                 FilteredShows = new ObservableCollection<Show>(tmpShows);
                 AlphabeticalShows = new ObservableCollection<Show>(alphabetical);
                 OnPropertyChanged(nameof(OrderedShows));
+                OnPropertyChanged(nameof(FinalPredictedShows));
+                OnPropertyChanged(nameof(CurrentPredictedShows));
+                OnPropertyChanged(nameof(PredictionAccuracy));
             });
         }
 
@@ -351,6 +354,9 @@ namespace NewTVPredictions.ViewModels
             {
                 _showAllYears = value;
                 OnPropertyChanged(nameof(ShowAllYears));
+                OnPropertyChanged(nameof(FinalPredictedShows));
+                OnPropertyChanged(nameof(CurrentPredictedShows));
+                OnPropertyChanged(nameof(PredictionAccuracy));
 
                 Factor_Toggled(this, new EventArgs());
             }
@@ -671,5 +677,39 @@ namespace NewTVPredictions.ViewModels
         /// A list of all current shows, ordered by best performing first
         /// </summary>
         public List<Show> OrderedShows => FilteredShows.OrderByDescending(x => x.CurrentPerformance).ToList();
+
+        /// <summary>
+        /// Retrieve a list of shows that are either renewed or canceled, and have a final prediction on record
+        /// </summary>
+        public List<Show> FinalPredictedShows =>
+            (ShowAllYears ? Shows : FilteredShows).Where(x => (x.FinalPrediction is not null && x.FinalPrediction > 0) && (x.Renewed || x.Canceled)).OrderByDescending(x => x.FinalPrediction).ToList();
+
+        /// <summary>
+        /// Retrieve a list of shows that are either renewed or canceled, sorted by their current prediction
+        /// </summary>
+        public List<Show> CurrentPredictedShows =>
+            (ShowAllYears ? Shows : FilteredShows).Where(x => x.Renewed || x.Canceled).OrderByDescending(x => x.ActualOdds).ToList();
+
+        bool _finalPredictions = true;
+        /// <summary>
+        /// Whether to display final predictions or current predictions on the PredictionAccuracy page
+        /// </summary>
+        public bool FinalPredictions
+        {
+            get => _finalPredictions;
+            set
+            {
+                _finalPredictions= value;
+                OnPropertyChanged(nameof(FinalPredictions));
+                OnPropertyChanged(nameof(CurrentPredictions));
+                OnPropertyChanged(nameof(PredictionAccuracy));
+            }
+        }
+        public bool CurrentPredictions => !FinalPredictions;
+
+        public double PredictionAccuracy =>
+            FinalPredictions ?
+            FinalPredictedShows.Select(x => x.PredictionCorrect ? 1.0 : 0.0).Average() :
+            CurrentPredictedShows.Select(x => x.CurrentPredictionCorrect ? 1.0 : 0.0).Average();
     }
 }
