@@ -58,21 +58,21 @@
 
     <Grid Grid.Column="1" Background="#40000000" RowDefinitions="Auto,*">
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-        <Button Padding="15,5" Background="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding SummerVisible}" >
+        <Button Padding="15,5" Background="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding SummerVisible}" x:Name="Summer">
           <Grid>
             <TextBlock Text="⚠️" FontSize="24" Foreground="Goldenrod"/>
           </Grid>
 
           <Button.Flyout>
             <Flyout>
-              <StackPanel>
-                <StackPanel IsVisible="{Binding PossibleSummerVisible}">
-                  <TextBlock Text="Possible Summer Shows"/>
-                  <ListBox ItemsSource="{Binding PossibleSummerShows}" SelectedItem="{Binding SummerShow}"/>
+              <StackPanel Margin="-10">
+                <StackPanel Margin="0" IsVisible="{Binding PossibleSummerVisible}">
+                  <TextBlock Text="Possible Summer Shows" Background="#1F1F1F" Padding="10"/>
+                  <ListBox ItemsSource="{Binding PossibleSummerShows}" SelectedItem="{Binding SummerShow}"  Tapped="ListBox_Tapped"/>
                 </StackPanel>
-                <StackPanel IsVisible="{Binding NotSummerVisible}">
-                  <TextBlock Text="Shows Possibly Marked Incorrectly For Summer"/>
-                  <ListBox ItemsSource="{Binding NotSummerShows}" SelectedItem="{Binding SummerShow}"/>
+                <StackPanel Margin="0" IsVisible="{Binding NotSummerVisible}">
+                  <TextBlock Text="Shows Possibly Marked Incorrectly For Summer" Background="#1F1F1F" Padding="10"/>
+                  <ListBox ItemsSource="{Binding NotSummerShows}" SelectedItem="{Binding SummerShow}" Tapped="ListBox_Tapped"/>
                 </StackPanel>
               </StackPanel>
             </Flyout>

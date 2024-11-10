@@ -485,9 +485,9 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// Create a clone of another show
         /// </summary>
-        public Show(Show other)                                             
+        public Show(Show other, Network? parent = null)                                             
         {
-            Parent = other.Parent;
+            Parent = parent is null ? other.Parent : parent;
             Name = other.Name;
             Season = other.Season;
             PreviousEpisodes = other.PreviousEpisodes;
@@ -509,6 +509,8 @@ namespace NewTVPredictions.ViewModels
             TargetRating = other.TargetRating;
             TargetViewers = other.TargetViewers;
             FinalPrediction = other.FinalPrediction;
+            ProjectedRating = other.ProjectedRating;
+            ProjectedViewers = other.ProjectedViewers;
 
             if (other._renewalStatus is not null)
                 RenewalStatus = other.RenewalStatus;
@@ -519,8 +521,7 @@ namespace NewTVPredictions.ViewModels
             foreach (var viewer in other.Viewers)
                 Viewers.Add(viewer);
 
-            RatingsContainer.Add(new RatingsInfo(Ratings, "Ratings"));
-            RatingsContainer.Add(new RatingsInfo(Viewers, "Viewers"));
+            ResetRatingsContainer();
 
             ResetOdds.Elapsed += ResetOdds_Elapsed;
 
@@ -622,7 +623,7 @@ namespace NewTVPredictions.ViewModels
             {
                 
 
-                if (member.Name != "RatingsContainer" && member.Name != "_ratingsContainer" && member.Name != "MissingProperty")
+                if (member.Name != "RatingsContainer" && member.Name != "_ratingsContainer" && member.Name != "MissingProperty" && member.Name != "ResetOdds" && member.Name != "Parent" && member.Name != "_parent")
                 {
                     var value1 = member is PropertyInfo prop1 ? prop1.GetValue(x) : ((FieldInfo)member).GetValue(x);
                     var value2 = member is PropertyInfo prop2 ? prop2.GetValue(y) : ((FieldInfo)member).GetValue(y);

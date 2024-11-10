@@ -15,4 +15,12 @@ public partial class EditRatings : UserControl
     {
         InitializeComponent();
     }
+
+    private void DataGrid_PreparingCellForEdit(object? sender, Avalonia.Controls.DataGridPreparingCellForEditEventArgs e)
+    {
+        if (e.EditingElement is TextBox textBox)
+        {
+            textBox.SelectAll();
+        }
+    }
 }

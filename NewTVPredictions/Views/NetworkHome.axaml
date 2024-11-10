@@ -20,9 +20,9 @@
         <ListBoxItem>Shows by Rating</ListBoxItem>
         <ListBoxItem>Shows by Factor</ListBoxItem>
         <ListBoxItem>Prediction Accuracy</ListBoxItem>
-        <ListBoxItem>Prediction Breakdown</ListBoxItem>
-        <ListBoxItem>Find Similar Shows</ListBoxItem>
-        <ListBoxItem>Modify Factors</ListBoxItem>
+        <!--<ListBoxItem>Prediction Breakdown</ListBoxItem>-->
+        <!--<ListBoxItem>Find Similar Shows</ListBoxItem>-->
+        <ListBoxItem IsEnabled="False">Modify Factors</ListBoxItem>
       </ListBox.Items>
     </ListBox>
   </Grid>

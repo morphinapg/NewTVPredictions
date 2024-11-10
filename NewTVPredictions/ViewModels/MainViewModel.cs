@@ -167,20 +167,24 @@ public partial class MainViewModel : ViewModelBase
         get => _selectedNetwork;
         set
         {
-            bool FinalPredictions = true, ShowAllYears = false;
+            bool FinalPredictions = true, ShowAllYears = false, Update = false;
 
             if (_selectedNetwork is not null)
             {
+                Update = true;
                 FinalPredictions = _selectedNetwork.FinalPredictions;
                 ShowAllYears = _selectedNetwork.ShowAllYears;
             }    
 
             _selectedNetwork = value;
 
-            if (_selectedNetwork is not null)
+            if (Update)
             {
-                _selectedNetwork.FinalPredictions = FinalPredictions;
-                _selectedNetwork.ShowAllYears = ShowAllYears;
+                foreach (var network in Networks)
+                {
+                    network.FinalPredictions = FinalPredictions;
+                    network.ShowAllYears = ShowAllYears;
+                }                
             }
             
             OnPropertyChanged(nameof(SelectedNetwork));           
@@ -225,9 +229,7 @@ public partial class MainViewModel : ViewModelBase
         SHOWS_BY_RATING = 4,
         SHOWS_BY_FACTOR = 5,
         PREDICTION_ACCURACY = 6,
-        PREDICTION_BREAKDOWN = 7,
-        SIMIAR_SHOWS = 8,
-        MODIFY_FACTORS = 9;
+        MODIFY_FACTORS = 7;
 
 
     int _selectedTabIndex = PREDICTIONS;
@@ -580,7 +582,7 @@ public partial class MainViewModel : ViewModelBase
 
 
 
-                EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+                EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(1)[CurrentApp.CurrentYear]));
 
                 var controller = new EvolutionController(EvolutionList.ToList());
                 controller.UpdateMargins();
@@ -590,7 +592,7 @@ public partial class MainViewModel : ViewModelBase
                 await CreateEvolutions();
             }
 
-            Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+            Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(1)[CurrentApp.CurrentYear]));
 
             var StatusUpdate = new Timer(1000);
             StatusUpdate.Elapsed += async (s, e) =>
@@ -712,8 +714,8 @@ public partial class MainViewModel : ViewModelBase
                 
             });
 
-            EvolutionList = new ObservableCollection<Evolution>(EvolutionList.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
-            Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+            EvolutionList = new ObservableCollection<Evolution>(EvolutionList.OrderByDescending(x => x.Network.GetAverageRatingPerYear(1)[CurrentApp.CurrentYear]));
+            Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(1)[CurrentApp.CurrentYear]));
 
             TrainingStarted = false;
 
@@ -1209,11 +1211,12 @@ public partial class MainViewModel : ViewModelBase
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            _possibleSummerShows = CurrentYearShows.Where(x => (x.Episodes - x.CurrentEpisodes) > WeeksToGo && x.Factors.Where(f => f.Text.ToLower().Contains("summer") && !f.IsTrue).Any()).ToList();
+            //PossibleSummerShows = CurrentYearShows.OrderBy(x => x.Name).ThenBy(x => x.Season).ToList();
+            PossibleSummerShows = CurrentYearShows.Where(x => (x.Episodes - x.CurrentEpisodes) > WeeksToGo && x.Factors.Where(f => f.Text.ToLower().Contains("summer") && !f.IsTrue).Any()).OrderBy(x => x.Name).ThenBy(x => x.Season).ToList();
 
             //Check for shows that are marked as summer shows but should be finished before summer starts
 
-            _notSummerShows = CurrentYearShows.Where(x => (x.Episodes - x.CurrentEpisodes) < WeeksToGo && x.Factors.Where(f => f.Text.ToLower().Contains("summer") && f.IsTrue).Any()).ToList();
+            NotSummerShows = CurrentYearShows.Where(x => (x.Episodes - x.CurrentEpisodes) < WeeksToGo && x.Factors.Where(f => f.Text.ToLower().Contains("summer") && f.IsTrue).Any()).OrderBy(x => x.Name).ThenBy(x => x.Season).ToList();
         });    
     }
 
@@ -1238,11 +1241,31 @@ public partial class MainViewModel : ViewModelBase
         {
             if (value is Show show && show.Parent is Network network)
             {
-                SelectedNetwork = network;
-                SelectedTabIndex = MODIFY_SHOW;
-                SwitchTab();
-                network.CurrentShow = show;
+                
+                SetCurrentShow(network, show);
             }
         }
+    }
+
+    async void SetCurrentShow(Network network, Show show)
+    {
+        int delay = 0;
+
+        if (SelectedNetwork != network)
+        {
+            SelectedNetwork = network;
+            delay += 500;
+        }
+            
+        if (SelectedTabIndex != MODIFY_SHOW)
+        {
+            SelectedTabIndex = MODIFY_SHOW;
+            delay += 500;
+        }
+
+        if (delay > 0)
+            await Task.Delay(delay);
+
+        network.CurrentShow = show;
     }
 }

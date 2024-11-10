@@ -353,10 +353,11 @@ namespace NewTVPredictions.ViewModels
             set
             {
                 _showAllYears = value;
+
                 OnPropertyChanged(nameof(ShowAllYears));
                 OnPropertyChanged(nameof(FinalPredictedShows));
                 OnPropertyChanged(nameof(CurrentPredictedShows));
-                OnPropertyChanged(nameof(PredictionAccuracy));
+                OnPropertyChanged(nameof(PredictionAccuracy));                          
 
                 Factor_Toggled(this, new EventArgs());
             }
@@ -642,7 +643,7 @@ namespace NewTVPredictions.ViewModels
             foreach (var factor in other.Factors)
                 Factors.Add(new Factor(factor));
 
-            var tempShows = other.Shows.Select(x => new Show(x)).ToList();
+            var tempShows = other.Shows.Select(x => new Show(x, this)).ToList();
 
             Shows = new ObservableCollection<Show>(tempShows);
             RatingsDev = other.RatingsDev;
@@ -687,8 +688,20 @@ namespace NewTVPredictions.ViewModels
         /// <summary>
         /// Retrieve a list of shows that are either renewed or canceled, sorted by their current prediction
         /// </summary>
-        public List<Show> CurrentPredictedShows =>
-            (ShowAllYears ? Shows : FilteredShows).Where(x => x.Renewed || x.Canceled).OrderByDescending(x => x.ActualOdds).ToList();
+        public List<Show> CurrentPredictedShows
+        {
+            get
+            {
+                if (Evolution is not null && CurrentPredictions && ShowAllYears)
+                {
+                    var AllYears = Shows.Select(x => x.Year).Where(x => x is not null).Distinct();
+                    foreach (var year in AllYears)
+                        Evolution.GeneratePredictions(year!.Value, false);
+                }
+                return (ShowAllYears ? Shows : FilteredShows).Where(x => x.Renewed || x.Canceled).OrderByDescending(x => x.ActualOdds).ToList();
+            }
+        }
+            
 
         bool _finalPredictions = true;
         /// <summary>
@@ -700,6 +713,8 @@ namespace NewTVPredictions.ViewModels
             set
             {
                 _finalPredictions= value;
+                OnPropertyChanged(nameof(FinalPredictedShows));
+                OnPropertyChanged(nameof(CurrentPredictedShows));
                 OnPropertyChanged(nameof(FinalPredictions));
                 OnPropertyChanged(nameof(CurrentPredictions));
                 OnPropertyChanged(nameof(PredictionAccuracy));

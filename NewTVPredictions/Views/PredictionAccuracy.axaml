@@ -10,6 +10,7 @@
     <DataGrid Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" ItemsSource="{Binding FinalPredictedShows}" SelectionChanged="DataGrid_SelectionChanged" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" IsVisible="{Binding FinalPredictions}">
       <DataGrid.Columns>
         <DataGridTextColumn Header="Show Name" Binding="{Binding Name}"/>
+        <DataGridTextColumn Header="Season" Binding="{Binding Season}"/>
         <DataGridTextColumn Header="Final Prediction" Binding="{Binding FinalPredictionString}"/>
         <DataGridTextColumn Header="Final Odds" Binding="{Binding FinalOdds, StringFormat=P0}"/>
         <DataGridTemplateColumn Header="Final Status">
@@ -27,12 +28,13 @@
     <DataGrid Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" ItemsSource="{Binding CurrentPredictedShows}" SelectionChanged="DataGrid_SelectionChanged" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" IsVisible="{Binding CurrentPredictions}">
       <DataGrid.Columns>
         <DataGridTextColumn Header="Show Name" Binding="{Binding Name}"/>
+        <DataGridTextColumn Header="Season" Binding="{Binding Season}"/>
         <DataGridTemplateColumn Header="Current Prediction">
           <DataTemplate x:DataType="vm:Show">
             <TextBlock Text="{Binding CurrentPrediction}" VerticalAlignment="Center"/>
           </DataTemplate>
         </DataGridTemplateColumn>
-        <DataGridTextColumn Header="Final Odds" Binding="{Binding ActualOdds, StringFormat=P0}"/>
+        <DataGridTextColumn Header="Current Odds" Binding="{Binding ActualOdds, StringFormat=P0}"/>
         <DataGridTemplateColumn Header="Final Status">
           <DataTemplate x:DataType="vm:Show">
             <TextBlock Text="{Binding PredictionStatus}" Foreground="{Binding RenewalColor}" VerticalAlignment="Center"/>
