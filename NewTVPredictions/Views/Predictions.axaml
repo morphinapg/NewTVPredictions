@@ -39,8 +39,24 @@
                   </StackPanel>
                 </DataTemplate>
               </DataGridTemplateColumn>
-              <DataGridTextColumn Header="Rating" Binding="{Binding CurrentRating, StringFormat={}{0:N3}}"/>
-              <DataGridTextColumn Header="Viewers" Binding="{Binding CurrentViewersString}"/>
+              <!--<DataGridTextColumn Header="Rating" Binding="{Binding CurrentRating, StringFormat={}{0:N3}}"/>-->
+              <DataGridTemplateColumn Header="Rating">
+                <DataTemplate x:DataType="vm:Show">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding CurrentRating, StringFormat={}{0:N3}}"/>
+                    <TextBlock Text="{Binding RatingChange, Converter={StaticResource ArrowConverter2}}" Foreground="{Binding RatingChange, Converter={StaticResource ChangeConverter2}}"/>
+                  </StackPanel>
+                </DataTemplate>
+              </DataGridTemplateColumn>
+              <!--<DataGridTextColumn Header="Viewers" Binding="{Binding CurrentViewersString}"/>-->
+              <DataGridTemplateColumn Header="Viewers">
+                <DataTemplate x:DataType="vm:Show">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding CurrentViewersString}"/>
+                    <TextBlock Text="{Binding ViewerChange, Converter={StaticResource ArrowConverter2}}" Foreground="{Binding ViewerChange, Converter={StaticResource ChangeConverter2}}"/>
+                  </StackPanel>
+                </DataTemplate>
+              </DataGridTemplateColumn>
               <DataGridTextColumn Header="Ratio" Binding="{Binding CurrentPerformance, StringFormat={}{0:N2}x, TargetNullValue=''}"/>
               <DataGridTemplateColumn Header="Status / Prediction">
                 <DataTemplate x:DataType="vm:Show">
@@ -59,7 +75,8 @@
           </DataGrid>
         </ScrollViewer>
 
-
+        <TextBlock Grid.Column="2" Text="{Binding Accuracy, StringFormat='Expected Prediction Accuracy: {0:P2}'}" HorizontalAlignment="Center" Margin="10" Opacity="0.75"/>
+        
         <Separator MaxWidth="{Binding Bounds.Width, ElementName=PredictionChart}"/>
 
         <TextBlock Margin="15" TextWrapping="Wrap" Opacity="0.6" MaxWidth="{Binding Bounds.Width, ElementName=PredictionChart}">

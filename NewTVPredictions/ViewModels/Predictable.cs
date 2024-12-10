@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using MathNet.Numerics.Distributions;
 using System.Collections.Concurrent;
-using Markdown.Avalonia.Plugins;
 using System.Transactions;
 
 namespace NewTVPredictions.ViewModels

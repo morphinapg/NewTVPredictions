@@ -52,7 +52,14 @@ namespace NewTVPredictions.ViewModels
             Parallel.ForEach(AllNetworks, x => x.TopModels[1] = new PredictionModel[2]);
 
             //Retest accuracy of top models
-            Parallel.ForEach(AllNetworks.SelectMany(x => x.TopModels).SelectMany(x => x).Where(x => x is not null), x => x.TestAccuracy(Stats[x.Network], WeightedShows[x.Network]));            
+            Parallel.ForEach(AllNetworks.SelectMany(x => x.TopModels).SelectMany(x => x).Where(x => x is not null), x => x.TestAccuracy(Stats[x.Network], WeightedShows[x.Network]));
+
+            //Reset Accuracy and Error for all existing models
+            Parallel.ForEach(AllNetworks.SelectMany(x => x.FamilyTrees).SelectMany(x => x).Where(x => x.Accuracy is not null || x.Error is not null), x =>
+            {
+                x.Accuracy = null;
+                x.Error = null;
+            });
 
             Dispatcher.UIThread.InvokeAsync(() =>
             {

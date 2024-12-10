@@ -502,7 +502,7 @@ namespace NewTVPredictions.ViewModels
             CurrentViewers = other.CurrentViewers;
             OldRating = other.OldRating;
             OldViewers = other.OldViewers;
-            _currentOdds = other._currentOdds;
+            //_currentOdds = other._currentOdds;
             OldOdds = other.OldOdds;
             CurrentPerformance = other.CurrentPerformance;
             OldPerformance = other.OldPerformance;
@@ -623,7 +623,7 @@ namespace NewTVPredictions.ViewModels
             {
                 
 
-                if (member.Name != "RatingsContainer" && member.Name != "_ratingsContainer" && member.Name != "MissingProperty" && member.Name != "ResetOdds" && member.Name != "Parent" && member.Name != "_parent")
+                if (member.Name != "RatingsContainer" && member.Name != "_ratingsContainer" && member.Name != "MissingProperty" && member.Name != "ResetOdds" && member.Name != "Parent" && member.Name != "_parent" && member.Name!="_currentOdds" && member.Name!="CurrentOdds" && member.Name!="ActualOdds")
                 {
                     var value1 = member is PropertyInfo prop1 ? prop1.GetValue(x) : ((FieldInfo)member).GetValue(x);
                     var value2 = member is PropertyInfo prop2 ? prop2.GetValue(y) : ((FieldInfo)member).GetValue(y);

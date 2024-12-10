@@ -7,7 +7,7 @@
              x:Class="NewTVPredictions.ShowsByRating" x:DataType="vm:MainViewModel">
   <StackPanel DataContext="{Binding SelectedNetwork}" HorizontalAlignment="Center">
     <TextBlock Text="Shows by Rating" FontSize="32" HorizontalAlignment="Center" Margin="10"/>
-    <DataGrid HorizontalAlignment="Center" ItemsSource="{Binding OrderedShows}" SelectionChanged="DataGrid_SelectionChanged" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False">
+    <DataGrid HorizontalAlignment="Center" ItemsSource="{Binding OrderedShows}" SelectionChanged="DataGrid_SelectionChanged" IsReadOnly="True" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="True" x:Name="RatingsGrid">
       <DataGrid.Columns>
         <DataGridTextColumn Header="Show Name" Binding="{Binding Name}"/>
         <DataGridTextColumn Header="Average Rating" Binding="{Binding AverageRating, StringFormat=N3}"/>

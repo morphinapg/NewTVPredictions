@@ -10,7 +10,6 @@ using System.Collections.Specialized;
 using Avalonia.Threading;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
-using ColorTextBlock.Avalonia;
 using System.Reflection.Metadata.Ecma335;
 using System.Collections.Concurrent;
 using Avalonia.Media;
@@ -51,6 +50,9 @@ namespace NewTVPredictions.ViewModels
         public double? RatingsDev, ViewersDev;
 
         public Evolution? Evolution;
+
+        public double? Accuracy => Evolution?.Accuracy;
+        public bool AccuacyVisible => Evolution is not null && Accuracy is not null;
 
         /// <summary>
         /// A factor is a true/false property of a show that can affect renewal

@@ -837,8 +837,8 @@ public partial class MainViewModel : ViewModelBase
 
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
-                        Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+                        EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(1)[CurrentApp.CurrentYear]));
+                        Networks = new ObservableCollection<Network>(Networks.OrderByDescending(x => x.GetAverageRatingPerYear(1)[CurrentApp.CurrentYear]));
                     });                    
 
                     var controller = new EvolutionController(EvolutionList.ToList());
@@ -893,7 +893,7 @@ public partial class MainViewModel : ViewModelBase
             });
         });
 
-        EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(0)[CurrentApp.CurrentYear]));
+        EvolutionList = new ObservableCollection<Evolution>(evolutions.OrderByDescending(x => x.Network.GetAverageRatingPerYear(1)[CurrentApp.CurrentYear]));
     }
 
     /// <summary>
