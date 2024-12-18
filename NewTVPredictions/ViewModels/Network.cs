@@ -200,7 +200,7 @@ namespace NewTVPredictions.ViewModels
         {
             if (CurrentModifyShow is not null)
             {
-                var OriginalShow = Shows.Where(x => x.Name == CurrentModifyShow.Name && x.Season == CurrentModifyShow.Season && x.Year == CurrentModifyShow.Year).FirstOrDefault();
+                var OriginalShow = Shows.Where(x => x.Name == CurrentShow.Name && x.Season == CurrentShow.Season && x.Year == CurrentShow.Year).FirstOrDefault();
 
                 if (OriginalShow is not null)
                 {
