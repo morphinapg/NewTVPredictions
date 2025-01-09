@@ -102,6 +102,8 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        public int? OldEpisodes;
+
         [DataMember]
         ObservableCollection<Factor> _factors = new();
         /// <summary>
@@ -502,6 +504,7 @@ namespace NewTVPredictions.ViewModels
             CurrentViewers = other.CurrentViewers;
             OldRating = other.OldRating;
             OldViewers = other.OldViewers;
+            OldEpisodes = other.OldEpisodes;
             //_currentOdds = other._currentOdds;
             OldOdds = other.OldOdds;
             CurrentPerformance = other.CurrentPerformance;

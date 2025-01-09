@@ -416,6 +416,25 @@ namespace NewTVPredictions.ViewModels
                     RatingsProjection = Math.Pow(10, RatingsProjection + RatingsAverages[year]);
                     ViewersProjection = Math.Pow(10, ViewersProjection + ViewerAverages[year]);
 
+                    double? OldRating = null, OldViewers = null;
+
+                    if (x.OldEpisodes is not null)
+                    {
+                        if (x.OldEpisodes == x.CurrentEpisodes)
+                        {
+                            OldRating = CurrentRating;
+                            OldViewers = CurrentViewers;
+                        }
+                        else
+                        {
+                            OldRating = TopModel.GetPerformance(x, 0, x.OldEpisodes.Value, Ratings);
+                            OldViewers = TopModel.GetPerformance(x, 1, x.OldEpisodes.Value, Viewers);
+
+                            OldRating = TopModel.GetRatingsPerformance(OldRating.Value, RatingsAverages[year], 0);
+                            OldViewers = TopModel.GetRatingsPerformance(OldViewers.Value, ViewerAverages[year], 1);
+                        }   
+                    }
+
                     if (parallel)
                     {
                         x.CurrentRating = CurrentRating;
@@ -426,9 +445,15 @@ namespace NewTVPredictions.ViewModels
                         x.CurrentOdds = CurrentOdds;
                         x.ProjectedRating = RatingsProjection;
                         x.ProjectedViewers = ViewersProjection;
+
+                        if (OldRating is not null)
+                            x.OldRating = OldRating;
+
+                        if (OldViewers is not null)
+                            x.OldViewers = OldViewers;
                     }
                     else
-                        Predictions[x] = new PredictionContainer(CurrentRating, CurrentViewers, CurrentPerformance, TargetRating, TargetViewers, CurrentOdds, RatingsProjection, ViewersProjection);
+                        Predictions[x] = new PredictionContainer(CurrentRating, CurrentViewers, CurrentPerformance, TargetRating, TargetViewers, CurrentOdds, RatingsProjection, ViewersProjection, OldRating, OldViewers);
                 });
 
                 if (!parallel)
@@ -443,6 +468,12 @@ namespace NewTVPredictions.ViewModels
                         Show.CurrentOdds = Prediction.CurrentOdds;
                         Show.ProjectedRating = Prediction.ProjectedRating;
                         Show.ProjectedViewers= Prediction.ProjectedViewers;
+
+                        if (Prediction.OldRatings is not null)
+                            Show.OldRating = Prediction.OldRatings;
+
+                        if (Prediction.OldViewers is not null)
+                            Show.OldViewers= Prediction.OldViewers;
                     }
             }            
         }

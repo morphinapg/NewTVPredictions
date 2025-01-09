@@ -1076,6 +1076,7 @@ public partial class MainViewModel : ViewModelBase
                     x.OldViewers = x.CurrentViewers;
                     x.OldPerformance = x.CurrentPerformance;
                     x.OldOdds = x.ActualOdds;
+                    x.OldEpisodes  = x.CurrentEpisodes;
 
                     if (string.IsNullOrEmpty(x.RenewalStatus))
                         x.FinalPrediction = x.OldOdds;

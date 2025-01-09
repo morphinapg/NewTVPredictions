@@ -21,7 +21,7 @@ namespace NewTVPredictions.ViewModels
     public record EpisodePair(int Current, int Total);
 
     [DataContract]
-    public record PredictionContainer(double CurrentRating, double CurrentViewers, double CurrentPerformance, double TargetRating, double TargetViewers, double CurrentOdds, double ProjectedRating, double ProjectedViewers);
+    public record PredictionContainer(double CurrentRating, double CurrentViewers, double CurrentPerformance, double TargetRating, double TargetViewers, double CurrentOdds, double ProjectedRating, double ProjectedViewers, double? OldRatings, double? OldViewers);
 
     [DataContract]
     public record PredictionStats(
