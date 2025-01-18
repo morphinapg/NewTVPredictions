@@ -102,6 +102,7 @@ namespace NewTVPredictions.ViewModels
             }
         }
 
+        [DataMember]
         public int? OldEpisodes;
 
         [DataMember]

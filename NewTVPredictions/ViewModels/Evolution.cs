@@ -432,6 +432,9 @@ namespace NewTVPredictions.ViewModels
 
                             OldRating = TopModel.GetRatingsPerformance(OldRating.Value, RatingsAverages[year], 0);
                             OldViewers = TopModel.GetRatingsPerformance(OldViewers.Value, ViewerAverages[year], 1);
+
+                            OldRating = Math.Pow(10, OldRating.Value);
+                            OldViewers = Math.Pow(10, OldViewers.Value);
                         }   
                     }
 
