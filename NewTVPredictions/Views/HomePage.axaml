@@ -54,7 +54,7 @@
       
       <Button Content="{Binding TrainingText}" Command="{Binding Training}"/>
       <Button HorizontalAlignment="Center" VerticalAlignment="Center" Content="Import Old Database" Command="{Binding Import_Database}" IsVisible="{Binding ImportVisible}" Margin="15"/>  
-      <Button Content="Finalize Current Predictions" IsVisible="{Binding TrainingEnabled}" Command="{Binding Finalize_Click}"/>
+      <Button Content="Finalize Current Predictions" IsVisible="{Binding TrainingEnabled}" Command="{Binding Finalize_Click}" IsEnabled="{Binding SidepanelEnabled}"/>
     </StackPanel>
     
   </Grid>
