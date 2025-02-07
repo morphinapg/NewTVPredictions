@@ -432,7 +432,7 @@ namespace NewTVPredictions.ViewModels
                     double totalratings = 0;
                     int showcount = 0;
 
-                    foreach (var x in Shows.Where(x => x.Year == year))
+                    foreach (var x in Shows.Where(x => x.Year == year && (InputType == 0 ? x.Ratings.Any() : x.Viewers.Any())))
                     {
                         var Ratings = InputType == 0 ? x.Ratings : x.Viewers;
                         double weight = 0, total = 0, currentWeight = 0;
@@ -460,6 +460,7 @@ namespace NewTVPredictions.ViewModels
                         sumWeights += currentWeight;
                         sumX += year.Value * currentWeight;
                         sumY += showavg * currentWeight;
+
                         sumXY = year.Value * showavg * currentWeight;
                         sumX2 = year.Value * year.Value * currentWeight;
 
@@ -480,7 +481,10 @@ namespace NewTVPredictions.ViewModels
                 intercept = (sumY - slope * sumX) / sumWeights;
 
             foreach (var key in AverageRatings.Keys)
+            {
                 Trend[key] = slope * key + intercept;
+            }
+                
 
             if (!AverageRatings.Keys.Contains(CurrentApp.CurrentYear))
                 Trend[CurrentApp.CurrentYear] = slope * CurrentApp.CurrentYear + intercept;

@@ -394,6 +394,8 @@ namespace NewTVPredictions.ViewModels
                             ErrorTotal += Math.Pow(BlendedPerformance - BlendedThreshold, 2) * Show.Weight;
                     }
                 }
+
+                
             }
 
             if (CalculateMargin)
@@ -407,7 +409,7 @@ namespace NewTVPredictions.ViewModels
                 //Accuracy
                 returns[0] = AccuracyTotal / WeightTotal;
                 //Error
-                returns[1] = ErrorTotal / WeightTotal;
+                returns[1] = ErrorTotal / WeightTotal;                
 
                 //RatingsAvg
                 returns[2] = RatingAvgTotal / StatWeights;
