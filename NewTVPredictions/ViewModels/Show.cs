@@ -192,9 +192,13 @@ namespace NewTVPredictions.ViewModels
         /// </summary>
         public void ResetRatingsContainer()
         {
+            Ratings = Ratings.Where(x => x is not null).ToList();
+            Viewers = Viewers.Where(x => x is not null).ToList();
+
             _ratingsContainer = new();
             RatingsContainer.Add(new RatingsInfo(Ratings, "Ratings"));
             RatingsContainer.Add(new RatingsInfo(Viewers, "Viewers"));
+            
 
             RatingsContainer[0].RatingsChanged += Show_RatingsChanged;
             RatingsContainer[1].RatingsChanged += Show_RatingsChanged;
@@ -525,14 +529,14 @@ namespace NewTVPredictions.ViewModels
             foreach (var viewer in other.Viewers)
                 Viewers.Add(viewer);
 
-            ResetRatingsContainer();
-
             ResetOdds.Elapsed += ResetOdds_Elapsed;
 
             if (this != other)
             {
                 Dispatcher.UIThread.InvokeAsync(() => MessageBoxManager.GetMessageBoxStandard("Error", "Please update the copy constructor to support '" + MissingMember + "'", ButtonEnum.Ok).ShowAsync());                
             }
+
+            ResetRatingsContainer();
         }
 
         [DataMember]

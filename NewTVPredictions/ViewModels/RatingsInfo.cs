@@ -46,8 +46,8 @@ namespace NewTVPredictions.ViewModels
 
             if (i > Ratings.Count - 1 || value is null)
             {
-                if (Ratings.Contains(null) || Ratings.Contains(0))
-                    Ratings = Ratings.Where(x => x is not null && x != 0).ToList();
+                if (Ratings.Contains(null))
+                    Ratings = Ratings.Where(x => x is not null).ToList();
 
                 var max = Math.Min(Ratings.Count+1, 26);
 
