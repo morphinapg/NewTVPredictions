@@ -246,6 +246,9 @@ namespace NewTVPredictions.ViewModels
 
                 Shows.Add(CurrentShow);
 
+                CurrentShow.RatingsChanged += Show_RatingsChanged;
+                SubscribedShows.Add(CurrentShow);
+
                 Database_Modified?.Invoke(this, EventArgs.Empty);
             }            
 
@@ -640,6 +643,12 @@ namespace NewTVPredictions.ViewModels
 
         private void Show_RatingsChanged(object? sender, EventArgs e)
         {
+            if (sender is Show s)
+            {
+                if (s.CurrentEpisodes > s.Episodes)
+                    s.Episodes = s.CurrentEpisodes;
+            }
+
             Database_Modified?.Invoke(this, EventArgs.Empty);
         }
 
@@ -671,7 +680,12 @@ namespace NewTVPredictions.ViewModels
                     var OriginalShow = Shows.Where(x => x.Name == CurrentModifyShow.Name && x.Season == CurrentModifyShow.Season && x.Year == CurrentModifyShow.Year).FirstOrDefault();
 
                     if (OriginalShow is not null)
+                    {
                         Shows.Remove(OriginalShow);
+
+                        OriginalShow.RatingsChanged -= Show_RatingsChanged;
+                        SubscribedShows.Remove(OriginalShow);
+                    }           
 
                     Database_Modified?.Invoke(this, EventArgs.Empty);
                 }
