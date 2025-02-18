@@ -875,8 +875,11 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>
     /// When data in the Network object has been modified, save the database
     /// </summary>
-    private void Network_Database_Modified(object? sender, EventArgs e)
+    private void Network_Database_Modified(object? sender, DatabaseModifiedEventArgs e)
     {
+        if (e.MissingEpisodes)
+            MissingEpisodes = true;
+
         SaveDatabase();
     }
 
@@ -1269,5 +1272,16 @@ public partial class MainViewModel : ViewModelBase
             await Task.Delay(delay);
 
         network.CurrentShow = show;
+    }
+
+    bool _missingEpisodes = false;
+    public bool MissingEpisodes
+    {
+        get => _missingEpisodes;
+        set
+        {
+            _missingEpisodes = value;
+            OnPropertyChanged(nameof(MissingEpisodes));
+        }
     }
 }

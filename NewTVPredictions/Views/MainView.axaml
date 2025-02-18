@@ -58,6 +58,7 @@
 
     <Grid Grid.Column="1" Background="#40000000" RowDefinitions="Auto,*">
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Content="Missing Episodes!" Background="#80880015" IsVisible="{Binding MissingEpisodes}"/>
         <Button Padding="15,5" Background="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding SummerVisible}" x:Name="Summer">
           <Grid>
             <TextBlock Text="⚠️" FontSize="24" Foreground="Goldenrod"/>

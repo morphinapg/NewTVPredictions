@@ -138,7 +138,7 @@ namespace NewTVPredictions.ViewModels
 
             SubscribeToShows();
 
-            Database_Modified?.Invoke(this, e);
+            Database_Modified?.Invoke(this, new DatabaseModifiedEventArgs());
         }
 
         Show _currentShow = new();
@@ -208,7 +208,7 @@ namespace NewTVPredictions.ViewModels
                     Shows.Add(CurrentModifyShow);
                 }
 
-                Database_Modified?.Invoke(this, EventArgs.Empty);
+                Database_Modified?.Invoke(this, new DatabaseModifiedEventArgs());
             }
 
             ResetShow();
@@ -249,7 +249,7 @@ namespace NewTVPredictions.ViewModels
                 CurrentShow.RatingsChanged += Show_RatingsChanged;
                 SubscribedShows.Add(CurrentShow);
 
-                Database_Modified?.Invoke(this, EventArgs.Empty);
+                Database_Modified?.Invoke(this, new DatabaseModifiedEventArgs());
             }            
 
             ResetShow();
@@ -619,7 +619,7 @@ namespace NewTVPredictions.ViewModels
             return projectedRating;
         }
 
-        public event EventHandler? Database_Modified;
+        public event EventHandler<DatabaseModifiedEventArgs>? Database_Modified;
 
 
         HashSet<Show> SubscribedShows = new();
@@ -643,13 +643,15 @@ namespace NewTVPredictions.ViewModels
 
         private void Show_RatingsChanged(object? sender, EventArgs e)
         {
-            if (sender is Show s)
+            var args = new DatabaseModifiedEventArgs();
+
+            if (sender is Show s && s.CurrentEpisodes > s.Episodes)
             {
-                if (s.CurrentEpisodes > s.Episodes)
-                    s.Episodes = s.CurrentEpisodes;
+                //s.Episodes = s.CurrentEpisodes;
+                args.MissingEpisodes = true;    
             }
 
-            Database_Modified?.Invoke(this, EventArgs.Empty);
+            Database_Modified?.Invoke(this, args);
         }
 
         public Network (Network other)
@@ -687,7 +689,7 @@ namespace NewTVPredictions.ViewModels
                         SubscribedShows.Remove(OriginalShow);
                     }           
 
-                    Database_Modified?.Invoke(this, EventArgs.Empty);
+                    Database_Modified?.Invoke(this, new DatabaseModifiedEventArgs());
                 }
 
                 ResetShow();
