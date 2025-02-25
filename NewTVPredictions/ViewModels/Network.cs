@@ -206,6 +206,8 @@ namespace NewTVPredictions.ViewModels
                 {
                     Shows.Remove(OriginalShow);
                     Shows.Add(CurrentModifyShow);
+                    AlphabeticalShows = new ObservableCollection<Show>((CurrentYear is null ? Shows.ToList() : Shows.ToList().Where(x => x.Year == CurrentYear)).OrderBy(x => x.Name).ThenBy(x => x.Season));
+                    SubscribeToShows();
                 }
 
                 Database_Modified?.Invoke(this, new DatabaseModifiedEventArgs());
@@ -656,6 +658,8 @@ namespace NewTVPredictions.ViewModels
 
         public Network (Network other)
         {
+            Shows.CollectionChanged += Shows_CollectionChanged;
+
             Name = other.Name;
             foreach (var factor in other.Factors)
                 Factors.Add(new Factor(factor));
