@@ -333,11 +333,6 @@ namespace NewTVPredictions.ViewModels
                     //RatingsPerformance = outputs[0];
                     //ViewersPerformance = outputs[1];
 
-                    //RatingAvgTotal += RatingsPerformance * Show.Weight;
-                    //ViewerAvgTotal += ViewersPerformance * Show.Weight;
-                    //RatingDevTotal += Math.Pow(RatingsPerformance - RatingsAverages[year], 2) * Show.Weight;
-                    //ViewerDevTotal += Math.Pow(ViewersPerformance - ViewerAverages[year], 2) * Show.Weight;
-
                     if (ReturnMode == 2)
                     {
                         RatingsValues.Add(new StatsContainer(RatingsPerformance, Show.Weight));

@@ -13,9 +13,11 @@
         <DataGridTextColumn Header="Average Rating" Binding="{Binding AverageRating, StringFormat=N3}"/>
         <DataGridTextColumn Header="Projected Rating" Binding="{Binding ProjectedRating, StringFormat=N3}"/>
         <DataGridTextColumn Header="Predicted Rating" Binding="{Binding CurrentRating, StringFormat=N3}"/>
+        <DataGridTextColumn Header="Target Rating" Binding="{Binding TargetRating, StringFormat=N3}"/>
         <DataGridTextColumn Header="Average Viewers (M)" Binding="{Binding AverageViewers, StringFormat=N3}"/>
         <DataGridTextColumn Header="Projected Viewers (M)" Binding="{Binding ProjectedViewers, StringFormat=N3}"/>
         <DataGridTextColumn Header="Predicted Viewers (M)" Binding="{Binding CurrentViewers, StringFormat=N3}"/>
+        <DataGridTextColumn Header="Target Viewers (M)" Binding="{Binding TargetViewers, StringFormat=N3}"/>
       </DataGrid.Columns>
     </DataGrid>
   </StackPanel>

@@ -581,11 +581,11 @@ namespace NewTVPredictions.ViewModels
         /// Projects an episode's rating, given a list of current episodes
         /// </summary>
         /// <param name="Episodes">Current episodes</param>
-        /// <param name="ProjectedEpisode">The calculated value</param>
+        /// <param name="ProjectedEpisode">Which episode to project towards</param>
         /// <returns></returns>
         public double GetProjectedRating(List<double> Episodes, int ProjectedEpisode)
         {
-            double sumWeights = 0, sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+            double sumWeights = 0;//, sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
 
             double RunningTotal = 0, CurrentAverage = 0;
 
@@ -599,26 +599,28 @@ namespace NewTVPredictions.ViewModels
 
                 CurrentAverage = RunningTotal / sumWeights;
                 
-                sumX += episode * weight;
-                sumY += CurrentAverage * weight;
-                sumXY += episode * CurrentAverage * weight;
-                sumX2 += episode * episode * weight;
+                //sumX += episode * weight;
+                //sumY += CurrentAverage * weight;
+                //sumXY += episode * CurrentAverage * weight;
+                //sumX2 += episode * episode * weight;
             }
 
-            
-            double 
-                slope = (sumWeights * sumXY - sumX * sumY) / (sumWeights * sumX2 - sumX * sumX),
-                intercept = (sumY - slope * sumX) / sumWeights;
 
-            if (Episodes.Count == 2)
-            {
-                slope = 0;
-                intercept = sumY / sumWeights;
-            }
+            //double 
+            //    slope = (sumWeights * sumXY - sumX * sumY) / (sumWeights * sumX2 - sumX * sumX),
+            //    intercept = (sumY - slope * sumX) / sumWeights;
 
-            double projectedRating = slope * ProjectedEpisode + intercept;
+            //if (Episodes.Count == 2)
+            //{
+            //    slope = 0;
+            //    intercept = sumY / sumWeights;
+            //}
 
-            return projectedRating;
+            //double projectedRating = slope * ProjectedEpisode + intercept;
+
+            //return projectedRating;
+
+            return CurrentAverage;
         }
 
         public event EventHandler<DatabaseModifiedEventArgs>? Database_Modified;
