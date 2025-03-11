@@ -239,12 +239,13 @@ namespace NewTVPredictions.ViewModels
         /// <param name="Model">The PredictionModel to test</param>
         /// <param name="Stats">Statistics needed during accuracy testing</param>
         /// <param name="WeightedShows">A list of all shows marked as renewed or canceled from a network, with their associated weights</param>
-        /// <param name="CalculateMargin">Whether to calculate a Margin of Error based on the provided CurrentEpisode/TotalEpisode</param>
+        /// <param name="ReturnMode">Determines which output mode to use. 0 = normal Accuracy/Error, 1 = Margin of Error, 2 = Statistics Calculations</param>
         /// <param name="CurrentEpisode">Represents how many episodes into a TV show that is being tested</param>
         /// <param name="TotalEpisodes">Represents total number of episodes a TV show will have for the season</param>
         /// <returns></returns>
-        public double[] TestAccuracy(PredictionModel Model, PredictionStats Stats, IEnumerable<WeightedShow> WeightedShows, bool CalculateMargin = false, int CurrentEpisode = 0, int TotalEpisodes = 26)
+        public double[] TestAccuracy(PredictionModel Model, PredictionStats Stats, IEnumerable<WeightedShow> WeightedShows, int ReturnMode = 0, int CurrentEpisode = 0, int TotalEpisodes = 26)
         {
+
             ConcurrentDictionary<(Show, int), double>
                 RatingsProjections = Stats.RatingsProjections,
                 ViewerProjections = Stats.ViewerProjections;
@@ -272,12 +273,17 @@ namespace NewTVPredictions.ViewModels
             (Show, int) key;
 
             double
-                Lowest = CalculateMargin ? (CurrentEpisode - 1.0) / TotalEpisodes : 0,
-                Highest = CalculateMargin ? (CurrentEpisode + 1.0) / TotalEpisodes : 2;
+                Lowest = ReturnMode == 1 ? (CurrentEpisode - 1.0) / TotalEpisodes : 0,
+                Highest = ReturnMode == 1 ? (CurrentEpisode + 1.0) / TotalEpisodes : 2;
 
             List<StatsContainer>
                 Correct = new(),
-                Incorrect = new();
+                Incorrect = new(),
+                RatingsValues = new(),
+                ViewersValues = new();
+
+            double
+                WeightedRatings = 0, WeightedViewers = 0;
 
             foreach (var Show in WeightedShows)
             {
@@ -324,12 +330,22 @@ namespace NewTVPredictions.ViewModels
                     RatingsPerformance = RatingsProjection + outputs[0];
                     ViewersPerformance = ViewersProjection + outputs[1];
 
-                    RatingAvgTotal += RatingsPerformance * Show.Weight;
-                    ViewerAvgTotal += ViewersPerformance * Show.Weight;
-                    RatingDevTotal += Math.Pow(RatingsPerformance - RatingsAverages[year], 2) * Show.Weight;
-                    ViewerDevTotal += Math.Pow(ViewersPerformance - ViewerAverages[year], 2) * Show.Weight;
-                    StatWeights += Show.Weight;
+                    //RatingsPerformance = outputs[0];
+                    //ViewersPerformance = outputs[1];
 
+                    //RatingAvgTotal += RatingsPerformance * Show.Weight;
+                    //ViewerAvgTotal += ViewersPerformance * Show.Weight;
+                    //RatingDevTotal += Math.Pow(RatingsPerformance - RatingsAverages[year], 2) * Show.Weight;
+                    //ViewerDevTotal += Math.Pow(ViewersPerformance - ViewerAverages[year], 2) * Show.Weight;
+
+                    if (ReturnMode == 2)
+                    {
+                        RatingsValues.Add(new StatsContainer(RatingsPerformance, Show.Weight));
+                        ViewersValues.Add(new StatsContainer(ViewersPerformance, Show.Weight));
+                        WeightedRatings += RatingsPerformance * Show.Weight;
+                        WeightedViewers += ViewersPerformance * Show.Weight;
+                        StatWeights += Show.Weight;
+                    }   
 
                     RatingsThreshold = outputs[2];
                     ViewersThreshold = outputs[3];
@@ -343,7 +359,7 @@ namespace NewTVPredictions.ViewModels
                     //Test Accuracy
                     difference = Math.Abs(BlendedPerformance - BlendedThreshold);
 
-                    if (CalculateMargin)
+                    if (ReturnMode == 1)
                     {
                         if (Show.Show.Renewed && BlendedPerformance > BlendedThreshold || Show.Show.Canceled && BlendedPerformance < BlendedThreshold)
                             Correct.Add(new StatsContainer(difference, Show.Weight));
@@ -398,28 +414,29 @@ namespace NewTVPredictions.ViewModels
                 
             }
 
-            if (CalculateMargin)
+            if (ReturnMode == 0)
             {
-                return new double[1] { GetMargin(Incorrect, Correct) };
-            }
-            else
-            {
-                var returns = new double[6];
+                var returns = new double[2];
 
                 //Accuracy
                 returns[0] = AccuracyTotal / WeightTotal;
                 //Error
-                returns[1] = ErrorTotal / WeightTotal;                
+                returns[1] = ErrorTotal / WeightTotal;
 
-                //RatingsAvg
-                returns[2] = RatingAvgTotal / StatWeights;
-                //RatingsDev
-                returns[3] = Math.Sqrt(RatingDevTotal / StatWeights);
+                return returns;
+            }
+            else if (ReturnMode == 1)
+            {
+                return new double[]{ GetMargin(Incorrect, Correct)};
+            }
+            else 
+            {
+                var returns = new double[4];
 
-                //ViewersAvg
-                returns[4] = ViewerAvgTotal / StatWeights;
-                //ViewersDev
-                returns[5] = Math.Sqrt(ViewerDevTotal / StatWeights);
+                returns[0] = WeightedRatings / StatWeights; // RatingsAvg
+                returns[1] = Math.Sqrt(RatingsValues.Sum(x => Math.Pow(x.Value - returns[0], 2) * x.Weight) / StatWeights); //RatingsDev
+                returns[2] = WeightedViewers / StatWeights; //ViewersAvg
+                returns[3] = Math.Sqrt(ViewersValues.Sum(x => Math.Pow(x.Value - returns[2], 2) * x.Weight) / StatWeights); //ViewersDev
 
                 return returns;
             }            

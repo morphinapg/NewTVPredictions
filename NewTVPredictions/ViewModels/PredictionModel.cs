@@ -299,11 +299,22 @@ namespace NewTVPredictions.ViewModels
             Accuracy = outputs[0];
             Error = outputs[1];
 
-            RatingsAvg = outputs[2];
-            RatingsDev = outputs[3];
+            //RatingsAvg = outputs[2];
+            //RatingsDev = outputs[3];
 
-            ViewersAvg = outputs[4];
-            ViewersDev = outputs[5];
+            //ViewersAvg = outputs[4];
+            //ViewersDev = outputs[5];
+        }
+
+        public void UpdateStats(PredictionStats Stats, IEnumerable<WeightedShow> WeightedShows)
+        {
+            var outputs = TestAccuracy(this, Stats, WeightedShows, 2);
+
+            RatingsAvg = outputs[0];
+            RatingsDev = outputs[1];
+
+            ViewersAvg = outputs[2];
+            ViewersDev = outputs[3];
         }
 
         /// <summary>

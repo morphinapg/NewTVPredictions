@@ -48,6 +48,7 @@
                   </StackPanel>
                 </DataTemplate>
               </DataGridTemplateColumn>
+              <!--<DataGridTextColumn Header="Target Rating" Binding="{Binding TargetRating, StringFormat={}{0:N3}}}"/>-->
               <!--<DataGridTextColumn Header="Viewers" Binding="{Binding CurrentViewersString}"/>-->
               <DataGridTemplateColumn Header="Viewers">
                 <DataTemplate x:DataType="vm:Show">
@@ -57,6 +58,7 @@
                   </StackPanel>
                 </DataTemplate>
               </DataGridTemplateColumn>
+              <!--<DataGridTextColumn Header="Target Viewers" Binding="{Binding TargetViewersString}"/>-->
               <DataGridTextColumn Header="Ratio" Binding="{Binding CurrentPerformance, StringFormat={}{0:N2}x, TargetNullValue=''}"/>
               <DataGridTemplateColumn Header="Status / Prediction">
                 <DataTemplate x:DataType="vm:Show">

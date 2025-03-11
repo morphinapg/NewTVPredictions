@@ -466,8 +466,8 @@ namespace NewTVPredictions.ViewModels
                         sumX += year.Value * currentWeight;
                         sumY += showavg * currentWeight;
 
-                        sumXY = year.Value * showavg * currentWeight;
-                        sumX2 = year.Value * year.Value * currentWeight;
+                        sumXY += year.Value * showavg * currentWeight;
+                        sumX2 += year.Value * year.Value * currentWeight;
 
                         totalratings += showavg;
 

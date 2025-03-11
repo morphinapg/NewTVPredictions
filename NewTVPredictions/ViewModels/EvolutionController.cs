@@ -109,6 +109,12 @@ namespace NewTVPredictions.ViewModels
 
             Parallel.ForEach( AllNetworks.Select(Evolution => EpisodePairs.Select(x => new { Evolution, x.CurrentEpisode, x.TotalEpisodes })).SelectMany(x => x), x => x.Evolution.CalculateMarginOfError(WeightedShows[x.Evolution.Network], Stats[x.Evolution.Network],x.CurrentEpisode, x.TotalEpisodes));
 
+            //Also update average and standard deviation stats for top model
+            Parallel.ForEach(AllNetworks.Where(x => x.TopModel is not null).Select(x => x.TopModel), x => x.UpdateStats(Stats[x.Network], WeightedShows[x.Network]));
+
+            //foreach (var model in AllNetworks.Where(x => x.TopModel is not null).Select(x => x.TopModel))
+            //    model.UpdateStats(Stats[model.Network], WeightedShows[model.Network]);
+
             Parallel.ForEach(AllNetworks, x => x.OldAccuracy = null);
         }
     }

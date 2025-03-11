@@ -408,6 +408,8 @@ namespace NewTVPredictions.ViewModels
 
                     TargetViewers = TopModel.GetRatingsPerformance(TargetViewers, ViewerAverages[year], 1);
 
+                    //CurrentPerformance = Math.Pow(10, (CurrentRating - TargetRating) * Blend + (CurrentViewers - TargetViewers) * (1 - Blend));
+
 
                     CurrentRating = Math.Pow(10,CurrentRating);
                     CurrentViewers = Math.Pow(10,CurrentViewers);
@@ -494,7 +496,7 @@ namespace NewTVPredictions.ViewModels
             {
                 var Episodes = new EpisodePair(CurrentEpisode, TotalEpisodes);
 
-                var Margin = TestAccuracy(TopModel, Stats, WeightedShows, true, CurrentEpisode, TotalEpisodes)[0];
+                var Margin = TestAccuracy(TopModel, Stats, WeightedShows, 1, CurrentEpisode, TotalEpisodes)[0];
 
                 if (double.IsNaN(Margin) || double.IsInfinity(Margin) || Margin == 0)
                     Margin = 100;
