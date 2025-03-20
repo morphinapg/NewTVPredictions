@@ -128,7 +128,11 @@ namespace NewTVPredictions.ViewModels
 
             if (r.NextDouble() < mutationrate)
             {
-                outputbias += mutationintensity * (r.NextDouble() * 2 - 1);
+                double
+                    min = Math.Max(outputbias - mutationintensity, 0),
+                    max = Math.Min(outputbias + mutationintensity, 1);
+
+                outputbias = r.NextDouble() * (max - min) + min;
                 IsMutated = true;
             }
         }
