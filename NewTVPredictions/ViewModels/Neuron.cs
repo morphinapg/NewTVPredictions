@@ -101,7 +101,7 @@ namespace NewTVPredictions.ViewModels
 
             total += bias;
 
-            return output ? total + outputbias : Activation(total) + outputbias;
+            return output ? total : Activation(total) + outputbias;
         }
 
         /// <summary>

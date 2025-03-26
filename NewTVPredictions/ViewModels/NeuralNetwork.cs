@@ -71,9 +71,19 @@ namespace NewTVPredictions.ViewModels
 
                 var CurrentSize = (CurrentLayer * 1.0 / (LayerSizes.Count + 1)) + (OutputCount * (double)LayerSizes.Count / (LayerSizes.Count + 1));
 
-                CurrentSize = Math.Round((CurrentSize / OutputCount), 0) * OutputCount;
+                var fraction = CurrentSize / OutputCount;
 
-                CurrentLayer = CurrentLayer > OutputCount ? (int)CurrentSize : (int)Math.Ceiling(CurrentSize);
+                var multiplier = (int)Math.Round(fraction, 0);
+
+                if (fraction - (int)fraction == 0.5)
+                {
+                    if (CurrentLayer > OutputCount)
+                        multiplier = (int)fraction;
+                    else
+                        multiplier = (int)(Math.Ceiling(fraction));
+                }
+
+                CurrentLayer = multiplier * OutputCount;
             }
 
             HiddenLayers = new();
