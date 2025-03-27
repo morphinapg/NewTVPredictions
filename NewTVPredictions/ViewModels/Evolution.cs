@@ -328,7 +328,7 @@ namespace NewTVPredictions.ViewModels
             if (TopModel is not null)
             {
                 Accuracy = TopModel.Accuracy;
-                Error = TopModel.Error;
+                Error = TopModel.Error is null ? null : Math.Sqrt(TopModel.Error.Value);
 
                 OnPropertyChanged(nameof(AccuracyChange));
                 OnPropertyChanged(nameof(ActualChange));
@@ -380,10 +380,10 @@ namespace NewTVPredictions.ViewModels
                     var outputs = TopModel.GetOutputs(x, x.Episodes, Ratings, Viewers);
 
                     double
-                        ExpectedRatings = Network.GetProjectedRating(RatingsOffsets.Take(x.Episodes).ToList(), x.Episodes),
-                        ExpectedViewers = Network.GetProjectedRating(ViewerOffsets.Take(x.Episodes).ToList(), x.Episodes),
-                        RatingsProjection = Ratings.Count > 1 ? Network.GetProjectedRating(Ratings, x.Episodes) : Ratings[0] + (ExpectedRatings - RatingsOffsets[0]),
-                        ViewersProjection = Viewers.Count > 1 ? Network.GetProjectedRating(Viewers, x.Episodes) : Viewers[0] + (ExpectedViewers - ViewerOffsets[0]);
+                        ExpectedRatings = Network.GetProjectedRating(RatingsOffsets.Take(x.Episodes).ToList()),
+                        ExpectedViewers = Network.GetProjectedRating(ViewerOffsets.Take(x.Episodes).ToList()),
+                        RatingsProjection = Ratings.Count > 1 ? Network.GetProjectedRating(Ratings) : Ratings[0] + (ExpectedRatings - RatingsOffsets[0]),
+                        ViewersProjection = Viewers.Count > 1 ? Network.GetProjectedRating(Viewers) : Viewers[0] + (ExpectedViewers - ViewerOffsets[0]);
 
                     if (x.CurrentEpisodes > x.Episodes)
                         x.Episodes = x.CurrentEpisodes;

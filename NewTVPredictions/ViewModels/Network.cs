@@ -581,9 +581,8 @@ namespace NewTVPredictions.ViewModels
         /// Projects an episode's rating, given a list of current episodes
         /// </summary>
         /// <param name="Episodes">Current episodes</param>
-        /// <param name="ProjectedEpisode">Which episode to project towards</param>
         /// <returns></returns>
-        public double GetProjectedRating(List<double> Episodes, int ProjectedEpisode)
+        public double GetProjectedRating(List<double> Episodes)
         {
             double sumWeights = 0;//, sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
 

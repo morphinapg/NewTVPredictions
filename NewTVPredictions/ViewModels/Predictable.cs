@@ -290,8 +290,8 @@ namespace NewTVPredictions.ViewModels
                 ShowRatings = Show.Ratings;
                 ShowViewers = Show.Viewers;
 
-                ExpectedRatings = Network.GetProjectedRating(RatingsOffsets.Take(Show.Show.Episodes).ToList(), Show.Show.Episodes);
-                ExpectedViewers = Network.GetProjectedRating(ViewerOffsets.Take(Show.Show.Episodes).ToList(), Show.Show.Episodes);
+                ExpectedRatings = Network.GetProjectedRating(RatingsOffsets.Take(Show.Show.Episodes).ToList());
+                ExpectedViewers = Network.GetProjectedRating(ViewerOffsets.Take(Show.Show.Episodes).ToList());
 
                 //for (int i = 0; i < Show.Show.CurrentEpisodes; i++)
                 foreach (var i in Enumerable.Range(1, Show.Show.CurrentEpisodes).Where(x => (double)x / Show.Show.Episodes > Lowest && (double)x / Show.Show.Episodes < Highest).Select(x => x-1))
@@ -315,7 +315,7 @@ namespace NewTVPredictions.ViewModels
                         RatingsProjection = RatingsProjections[key];
                     else
                     {
-                        RatingsProjection = Ratings.Count > 1 ? Network.GetProjectedRating(Ratings, Show.Show.Episodes) : Ratings[0] + (ExpectedRatings - RatingsOffsets[0]);
+                        RatingsProjection = Ratings.Count > 1 ? Network.GetProjectedRating(Ratings) : Ratings[0] + (ExpectedRatings - RatingsOffsets[0]);
                         RatingsProjections[key] = RatingsProjection;
                     }
 
@@ -323,7 +323,7 @@ namespace NewTVPredictions.ViewModels
                         ViewersProjection = ViewerProjections[key];
                     else
                     {
-                        ViewersProjection = Viewers.Count > 1 ? Network.GetProjectedRating(Viewers, Show.Show.Episodes) : Viewers[0] + (ExpectedViewers - ViewerOffsets[0]);
+                        ViewersProjection = Viewers.Count > 1 ? Network.GetProjectedRating(Viewers) : Viewers[0] + (ExpectedViewers - ViewerOffsets[0]);
                         ViewerProjections[key] = ViewersProjection;
                     }
 
