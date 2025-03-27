@@ -440,7 +440,7 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(SidepanelEnabled));
         }
     }
-    public bool SidepanelEnabled => !TrainingStarted && TrainingEnabled;
+    public bool SidepanelEnabled => TrainingEnabled; //&& !TrainingStarted
 
     public string TrainingText => TrainingStarted ? "Stop Training" : "Start Training";
 
